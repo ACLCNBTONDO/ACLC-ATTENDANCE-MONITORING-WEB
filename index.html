@@ -368,10 +368,11 @@ async function doLogin() {
   btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     const data  = await publicApi('login.php', 'POST', { username, password, role: currentRole });
+    if (!data.token) throw new Error('Login failed — no token received.');
     currentUser = data.user;
     authToken   = data.token;
     localStorage.setItem('auth_token', authToken);
-    await showApp();
+    await showApp(authToken);
   } catch(err) {
     errEl.textContent = err.message || 'Incorrect username or password.';
     errEl.classList.add('visible');
@@ -387,7 +388,8 @@ async function doLogout() {
   window.location.href = window.location.pathname;
 }
 
-async function showApp() {
+async function showApp(token) {
+  if (token) authToken = token; // ensure token is set
   try {
     const d = await api('sections.php');
     SECTIONS = d.sections || [];
