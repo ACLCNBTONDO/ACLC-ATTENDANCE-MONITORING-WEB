@@ -428,6 +428,7 @@ async function doLogin() {
   localStorage.removeItem('auth_token');
   sessionStorage.clear();
   btn.textContent = 'Signing in…'; btn.disabled = true;
+  authToken = ''; localStorage.removeItem('auth_token');
   try {
     const data  = await publicApi('login.php', 'POST', { username, password, role: currentRole });
     currentUser = data.user;
@@ -444,7 +445,6 @@ async function doLogin() {
 
 async function doLogout() {
   try { await api('logout.php','POST'); } catch(e) {}
-  // Full page reload — cleanest way to reset all state
   localStorage.removeItem('auth_token');
   window.location.href = window.location.pathname;
 }
@@ -726,6 +726,10 @@ function updateDateLabel(){
 
 async function loadStudents() {
   const tb=document.getElementById('att-tbody');
+  if (!activeSection) {
+    if(tb) tb.innerHTML=`<tr><td colspan="7" class="empty">Please select a section.</td></tr>`;
+    return;
+  }
   if (!activeSection) {
     if(tb) tb.innerHTML=`<tr><td colspan="7" class="empty">Please select a section.</td></tr>`;
     return;
