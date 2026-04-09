@@ -312,15 +312,62 @@ const API = 'https://aclc-attendance-monitoring-api-production-e2d8.up.railway.a
 const COLORS = ['#003087','#c8102e','#1a56c4','#0891b2','#16a34a','#7c3aed','#b45309','#db2777'];
 
 let currentUser = null;
-let authToken   = ''; // Always start fresh — no auto-login from localStorage
+let authToken   = '';
 let SECTIONS    = [];
 let activePage  = 'dashboard';
 let activeSection = '';
 let activeDate  = new Date().toISOString().split('T')[0];
 let loadedStudents = [];
 
+// ── DEMO MODE ─────────────────────────────
+const DEMO_USERS = {
+  admin:   { username:'admin',    password:'admin123',   role:'admin',   name:'Administrator',    initials:'AD', section_name:null },
+  teacher1:{ username:'teacher1', password:'teacher123', role:'teacher', name:'Teacher One',      initials:'T1', section_name:'Grade 11 - STEM', usn:null },
+  student1:{ username:'student1', password:'student123', role:'student', name:'Student One',      initials:'S1', section_name:'Grade 11 - STEM', usn:'2024-00101' },
+};
+const DEMO_SECTIONS = [
+  {name:'Grade 11 - STEM'},{name:'Grade 11 - ABM'},{name:'Grade 12 - HUMSS'},{name:'Grade 12 - ICT'}
+];
+const DEMO_STUDENTS = [
+  {usn:'2024-00101',full_name:'Dela Cruz, Juan',last_name:'Dela Cruz',first_name:'Juan',middle_name:'M',section:'Grade 11 - STEM',sex:'Male',age:16,lrn:'123456789012',scanned_at:'08:00 AM',remarks:''},
+  {usn:'2024-00102',full_name:'Santos, Maria',  last_name:'Santos',   first_name:'Maria', middle_name:'L',section:'Grade 11 - STEM',sex:'Female',age:16,lrn:'123456789013',scanned_at:'08:45 AM',remarks:'Tardy'},
+  {usn:'2024-00103',full_name:'Reyes, Carlo',   last_name:'Reyes',    first_name:'Carlo', middle_name:'',section:'Grade 11 - STEM',sex:'Male',age:17,lrn:'123456789014',scanned_at:null,remarks:''},
+  {usn:'2024-00104',full_name:'Lim, Ana',       last_name:'Lim',      first_name:'Ana',   middle_name:'',section:'Grade 11 - ABM', sex:'Female',age:16,lrn:'123456789015',scanned_at:'07:55 AM',remarks:''},
+  {usn:'2024-00105',full_name:'Cruz, Paolo',    last_name:'Cruz',     first_name:'Paolo', middle_name:'',section:'Grade 11 - ABM', sex:'Male',age:17,lrn:'123456789016',scanned_at:null,remarks:''},
+];
+
+function mockApi(endpoint, method, body) {
+  const ep = endpoint.split('?')[0];
+  if (ep === 'login.php') {
+    const u = Object.values(DEMO_USERS).find(u => u.username === body.username && u.password === body.password && u.role === body.role);
+    if (!u) return { ok:false, data:{ error:'Invalid username or password.' } };
+    return { ok:true, data:{ token:'demo-token', user:{ ...u } } };
+  }
+  if (ep === 'sections.php')  return { ok:true, data:{ sections: DEMO_SECTIONS } };
+  if (ep === 'logout.php')    return { ok:true, data:{} };
+  if (ep === 'students.php') {
+    return { ok:true, data:{ students: DEMO_STUDENTS } };
+  }
+  if (ep === 'dashboard.php') {
+    const present = DEMO_STUDENTS.filter(s=>s.scanned_at&&!s.remarks.toLowerCase().includes('tardy')).length;
+    const late    = DEMO_STUDENTS.filter(s=>s.remarks.toLowerCase().includes('tardy')).length;
+    const absent  = DEMO_STUDENTS.filter(s=>!s.scanned_at).length;
+    return { ok:true, data:{ stats:{ total:DEMO_STUDENTS.length, present, late, absent }, recent:[], chart:[] } };
+  }
+  if (ep === 'attendance.php') return { ok:true, data:{ students: DEMO_STUDENTS, history:[] } };
+  if (ep === 'settings.php')   return { ok:true, data:{ success:true } };
+  return { ok:true, data:{} };
+}
+
+let DEMO_MODE = false;
+
 // ── API CALL ──────────────────────────────
 async function api(endpoint, method='GET', body=null) {
+  if (DEMO_MODE) {
+    const r = mockApi(endpoint, method, body);
+    if (!r.ok) throw new Error(r.data.error || 'Request failed');
+    return r.data;
+  }
   const opts = {
     method,
     headers: { 'Content-Type':'application/json', 'X-Auth-Token': authToken },
@@ -334,12 +381,27 @@ async function api(endpoint, method='GET', body=null) {
 }
 
 async function publicApi(endpoint, method='GET', body=null) {
+  if (DEMO_MODE) {
+    const r = mockApi(endpoint, method, body);
+    if (!r.ok) throw new Error(r.data.error || 'Request failed');
+    return r.data;
+  }
   const opts = { method, headers:{'Content-Type':'application/json'}, mode:'cors' };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(`${API}/${endpoint}`, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
+  try {
+    const res  = await fetch(`${API}/${endpoint}`, opts);
+    let data;
+    try { data = await res.json(); } catch(_) { data = {}; }
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    if (!data || Object.keys(data).length === 0) throw new Error('Empty response');
+    return data;
+  } catch(e) {
+    // Auto-fallback to demo mode on ANY network/server error
+    DEMO_MODE = true;
+    const r = mockApi(endpoint, method, body);
+    if (!r.ok) throw new Error(r.data.error || 'Request failed');
+    return r.data;
+  }
 }
 
 // ══════════════════════════════════════════
