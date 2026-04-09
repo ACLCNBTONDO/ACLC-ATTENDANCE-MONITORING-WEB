@@ -336,14 +336,8 @@ async function api(endpoint, method='GET', body=null) {
 async function publicApi(endpoint, method='GET', body=null) {
   const opts = { method, headers:{'Content-Type':'application/json'}, mode:'cors' };
   if (body) opts.body = JSON.stringify(body);
-  let res;
-  try {
-    res = await fetch(`${API}/${endpoint}`, opts);
-  } catch(e) {
-    throw new Error('Cannot reach server. Check your connection or API status.');
-  }
-  let data;
-  try { data = await res.json(); } catch(e) { throw new Error('Server returned an invalid response.'); }
+  const res  = await fetch(`${API}/${endpoint}`, opts);
+  const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
