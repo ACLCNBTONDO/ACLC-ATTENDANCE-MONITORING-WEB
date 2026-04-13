@@ -734,7 +734,7 @@ async function saveAttendance(){
   const btn=document.querySelector('[onclick="saveAttendance()"]');
   if(btn){btn.textContent='⏳ Saving…';btn.disabled=true;}
   try{
-    const records=loadedStudents.map(s=>({usn:s.usn,scanned_at:s.scanned_at||null,attendance_date:activeDate,remarks:s.remarks||null}));
+    const records=loadedStudents.map(s=>({usn:s.usn,time_in:s.scanned_at||s.time_in||null,attendance_date:activeDate,remarks:s.remarks||null}));
     await api('attendance.php','POST',{records,date:activeDate});
     const h=document.getElementById('save-hint');
     if(h){h.textContent='✓ Saved!';h.style.color='var(--green)';setTimeout(()=>{h.textContent='—';h.style.color='var(--muted)';},3000);}
@@ -808,7 +808,7 @@ async function renderStudentPage(main) {
                 ${history.length?history.map((d,i)=>`<tr>
                   <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${String(i+1).padStart(2,'0')}</td>
                   <td style="font-weight:500">${new Date(d.date+'T00:00:00').toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</td>
-                  <td><span class="badge ${d.status==='present'?'badge-green':d.status==='late'?'badge-yellow':'badge-red'}">${d.status.charAt(0).toUpperCase()+d.status.slice(1)}</span></td>
+                  <td>${(()=>{const r=(d.remarks||d.status||'').toLowerCase();const st=r.includes('tardy')||r.includes('late')?'late':r?'present':'absent';const lbl=st.charAt(0).toUpperCase()+st.slice(1);return `<span class="badge ${st==='present'?'badge-green':st==='late'?'badge-yellow':'badge-red'}">${lbl}</span>`;})()}</td>
                   <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${d.scanned_at||'—'}</td>
                   <td style="font-size:12px;color:var(--muted)">${d.remarks||''}</td>
                 </tr>`).join(''):`<tr><td colspan="5" class="empty">No records yet.</td></tr>`}
