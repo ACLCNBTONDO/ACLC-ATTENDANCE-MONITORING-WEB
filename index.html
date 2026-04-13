@@ -573,7 +573,7 @@ function attendanceTableHTML(readOnly=false) {
   const isTeacher = currentUser.role==='teacher';
   const grouped = {};
   SECTIONS.forEach(s => {
-    const key = s.strand + (s.year_level ? ' Gr.'+s.year_level : '');
+    const key = s.year_level || s.strand || s.name;
     if(!grouped[key]) grouped[key]=[];
     grouped[key].push(s);
   });
@@ -592,7 +592,7 @@ function attendanceTableHTML(readOnly=false) {
           <div style="margin-bottom:8px">
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:5px">${grp}</div>
             <div class="class-tabs" style="padding:0;border:none">
-              ${secs.map(s=>`<div class="class-tab ${s.name===activeSection?'active':''}" onclick="switchSection('${s.name}',this)">${s.name} <span style="opacity:.6;font-size:10px">(${s.student_count})</span></div>`).join('')}
+              ${secs.filter(s=>s&&s.name).map(s=>`<div class="class-tab ${s.name===activeSection?'active':''}" onclick="switchSection('${s.name}',this)">${s.name} <span style="opacity:.6;font-size:10px">(${s.student_count})</span></div>`).join('')}
             </div>
           </div>`).join('')}
       </div>`:''}
@@ -691,8 +691,8 @@ function renderTable(list) {
     const name=s.full_name||`${s.last_name}, ${s.first_name}`;
     const r=(s.remarks||'').toLowerCase();
     let status='absent',statusLabel='Absent';
-    if(s.remarks&&!r.includes('tardy')&&!r.includes('late')){status='present';statusLabel='Present';}
-    else if(r.includes('tardy')||r.includes('late')){status='late';statusLabel='Late';}
+    if(r.includes('tardy')||r.includes('late')){status='late';statusLabel='Late';}
+    else if(s.status==='present'||s.remarks){status='present';statusLabel='Present';}
     const safeUsn=s.usn.replace(/'/g,"\\'");
     return `<tr>
       <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${String(i+1).padStart(2,'0')}</td>
@@ -707,7 +707,7 @@ function renderTable(list) {
         <option value="absent"  ${status==='absent' ?'selected':''}>Absent</option>
         <option value="late"    ${status==='late'   ?'selected':''}>Late</option>
       </select></td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${s.scanned_at||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${s.time_in||'—'}</td>
       <td><input type="text" placeholder="Add note…" style="border:none;background:none;outline:none;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--muted);width:110px" value="${s.remarks||''}" oninput="setRemark('${safeUsn}',this.value)"/></td>
     </tr>`;
   }).join('');
@@ -734,7 +734,7 @@ async function saveAttendance(){
   const btn=document.querySelector('[onclick="saveAttendance()"]');
   if(btn){btn.textContent='⏳ Saving…';btn.disabled=true;}
   try{
-    const records=loadedStudents.map(s=>({usn:s.usn,time_in:s.scanned_at||s.time_in||null,attendance_date:activeDate,remarks:s.remarks||null}));
+    const records=loadedStudents.map(s=>({usn:s.usn,time_in:s.time_in||null,attendance_date:activeDate,remarks:s.remarks||null}));
     await api('attendance.php','POST',{records,date:activeDate});
     const h=document.getElementById('save-hint');
     if(h){h.textContent='✓ Saved!';h.style.color='var(--green)';setTimeout(()=>{h.textContent='—';h.style.color='var(--muted)';},3000);}
