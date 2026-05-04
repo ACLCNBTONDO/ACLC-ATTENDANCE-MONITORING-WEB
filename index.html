@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ACLC Monitor</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --red:#c8102e; --red-dark:#a00d24;
@@ -1034,6 +1035,7 @@ async function exportAttendance(){
   if(btn){btn.textContent='⏳ Preparing…';btn.disabled=true;}
   try{
     const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const ref=new Date(activeDate+'T00:00:00');
     const year=ref.getFullYear();
     const month=ref.getMonth();
@@ -1044,26 +1046,25 @@ async function exportAttendance(){
     const weekdays=[];
     for(let d=1;d<=daysInMonth;d++){
       const dt=new Date(year,month,d);
-      const dow=dt.getDay();
-      if(dow!==0&&dow!==6) weekdays.push(`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+      if(dt.getDay()!==0&&dt.getDay()!==6)
+        weekdays.push(`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
     }
 
-    // Fetch attendance for each weekday (students filtered to activeSection by API)
-    const attendanceMap={}; // {usn:{date:remarks}}
+    // Fetch attendance per weekday (API filters to activeSection)
+    const attendanceMap={};
     let studentList=[];
     for(const date of weekdays){
       const data=await api(`students.php?section=${encodeURIComponent(activeSection)}&date=${date}`);
-      if(studentList.length===0) studentList=data.students||[];
+      if(!studentList.length) studentList=data.students||[];
       (data.students||[]).forEach(s=>{
         if(!attendanceMap[s.usn]) attendanceMap[s.usn]={};
         attendanceMap[s.usn][date]=s.remarks||'';
       });
     }
 
-    // Attendance code: blank=Present, x=Absent, /=Late/Tardy
+    // SF2 codes: blank=Present, x=Absent, /=Late/Tardy
     const getCode=(usn,date)=>{
-      if(!attendanceMap[usn]) return '';
-      const r=(attendanceMap[usn][date]||'').toLowerCase();
+      const r=(attendanceMap[usn]&&attendanceMap[usn][date]||'').toLowerCase();
       if(!r) return 'x';
       if(r.includes('tardy')||r.includes('late')) return '/';
       return '';
@@ -1071,47 +1072,118 @@ async function exportAttendance(){
 
     const males=studentList.filter(s=>(s.sex||'').toLowerCase()==='male');
     const females=studentList.filter(s=>(s.sex||'').toLowerCase()==='female');
+    const nDates=weekdays.length;
+    // Column layout: 0=No, 1=Name, 2..2+nDates-1=dates, 2+nDates=ABSENT, 2+nDates+1=PRESENT, 2+nDates+2=REMARKS
+    const C_NAME=1, C_DATE=2, C_ABS=2+nDates, C_PRE=3+nDates, C_REM=4+nDates, TOTAL_COLS=5+nDates;
 
-    const q=v=>`"${String(v).replace(/"/g,'""')}"`;
-    const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const rows=[];
+    const merges=[];
+    const R=(arr)=>{rows.push(arr);return rows.length-1;};
+    const blank=()=>R(Array(TOTAL_COLS).fill(''));
+    const pad=(arr)=>{while(arr.length<TOTAL_COLS)arr.push('');return arr;};
 
-    let csv='';
-    // ── SF2 Header ──────────────────────────────────────────────
-    csv+=`${q('School Form 2 - Daily Attendance Report of Learners')}\n`;
-    csv+=`${q('Section:')},${q(activeSection)},${q('Month of:')},${q(monthName+' '+year)}\n\n`;
+    // Row 0 — Title
+    {const r=Array(TOTAL_COLS).fill('');r[0]='School Form 2 Daily Attendance Report of Learners For Senior High School (SF2-SHS)';
+     const ri=R(r);merges.push({s:{r:ri,c:0},e:{r:ri,c:TOTAL_COLS-1}});}
+    blank();
+    // Row 2 — School info
+    {const r=Array(TOTAL_COLS).fill('');
+     r[0]='School Name ';r[2]='AMA Computer Learning Center';
+     r[Math.floor(TOTAL_COLS*0.45)]='School ID ';
+     r[Math.floor(TOTAL_COLS*0.55)]='District ';
+     r[Math.floor(TOTAL_COLS*0.65)]='Division ';
+     r[Math.floor(TOTAL_COLS*0.8)]='Region';
+     R(r);}
+    blank();
+    // Row 4 — Academic info
+    {const r=Array(TOTAL_COLS).fill('');
+     r[0]='School Year ';r[2]='';
+     r[Math.floor(TOTAL_COLS*0.3)]='Semester';r[Math.floor(TOTAL_COLS*0.4)]='';
+     r[Math.floor(TOTAL_COLS*0.55)]='Grade Level ';r[Math.floor(TOTAL_COLS*0.65)]='';
+     r[Math.floor(TOTAL_COLS*0.75)]='Track and Strand';r[Math.floor(TOTAL_COLS*0.85)]='';
+     R(r);}
+    blank();
+    // Row 6 — Course
+    {const r=Array(TOTAL_COLS).fill('');r[0]='Course (for TVL only)';R(r);}
+    // Row 7 — Month of
+    {const r=Array(TOTAL_COLS).fill('');r[0]='Month of';r[2]=monthName.toUpperCase();R(r);}
+    // Row 8 — Section
+    {const r=Array(TOTAL_COLS).fill('');r[0]='Section ';r[2]=activeSection;R(r);}
+    blank();
+    // Row 10 — Main column headers
+    {const r=Array(TOTAL_COLS).fill('');
+     r[0]='No.';r[C_NAME]='NAME\n(Last Name, First Name, Middle Name)';r[C_DATE]='DATE';
+     r[C_ABS]='Total for the Month';r[C_REM]='REMARKS (If NLS, state reason)';
+     const ri=R(r);
+     merges.push({s:{r:ri,c:0},e:{r:ri,c:C_NAME-1}});           // No. merge
+     merges.push({s:{r:ri,c:C_NAME},e:{r:ri,c:C_DATE-1}});       // NAME merge
+     merges.push({s:{r:ri,c:C_DATE},e:{r:ri,c:C_ABS-1}});        // DATE merge
+     merges.push({s:{r:ri,c:C_ABS},e:{r:ri,c:C_REM-1}});         // Total merge
+     merges.push({s:{r:ri,c:C_REM},e:{r:ri,c:TOTAL_COLS-1}});    // REMARKS merge
+    }
+    // Row 11 — Day numbers
+    {const r=Array(TOTAL_COLS).fill('');
+     r[0]='';r[C_NAME]='';
+     weekdays.forEach((d,i)=>r[C_DATE+i]=parseInt(d.split('-')[2]));
+     r[C_ABS]='ABSENT';r[C_PRE]='PRESENT';
+     const ri=R(r);
+     merges.push({s:{r:ri,c:0},e:{r:ri,c:C_NAME-1}});
+     merges.push({s:{r:ri,c:C_NAME},e:{r:ri,c:C_DATE-1}});
+    }
+    // Row 12 — Day-of-week labels
+    {const r=Array(TOTAL_COLS).fill('');
+     weekdays.forEach((d,i)=>r[C_DATE+i]=DOW[new Date(d+'T00:00:00').getDay()]);
+     const ri=R(r);
+     merges.push({s:{r:ri,c:0},e:{r:ri,c:C_NAME-1}});
+     merges.push({s:{r:ri,c:C_NAME},e:{r:ri,c:C_DATE-1}});
+    }
 
-    // ── Column headers ───────────────────────────────────────────
-    // Row 1: day numbers
-    const dayNumHeaders=weekdays.map(d=>q(parseInt(d.split('-')[2]))).join(',');
-    csv+=`${q('No.')},${q('NAME (Last Name, First Name, Middle Name)')},${dayNumHeaders},${q('ABSENT')},${q('PRESENT')},${q('REMARKS')}\n`;
-    // Row 2: day-of-week labels
-    const dowHeaders=weekdays.map(d=>q(DAY_NAMES[new Date(d+'T00:00:00').getDay()])).join(',');
-    csv+=`${q('')},${q('')},${dowHeaders},${q('')},${q('')},${q('')}\n`;
-
-    // ── Student rows ──────────────────────────────────────────────
-    const writeRows=(list,startNo)=>{
+    // Student row builder
+    const addStudents=(list,startNo)=>{
       list.forEach((s,i)=>{
         const name=`${s.last_name}, ${s.first_name}${s.middle_name?' '+s.middle_name:''}`;
-        const codes=weekdays.map(d=>q(getCode(s.usn,d))).join(',');
+        const r=Array(TOTAL_COLS).fill('');
+        r[0]=startNo+i; r[C_NAME]=name;
         let absent=0,present=0;
-        weekdays.forEach(d=>{const c=getCode(s.usn,d);if(c==='x')absent++;else present++;});
-        csv+=`${q(startNo+i)},${q(name)},${codes},${q(absent)},${q(present)},${q('')}\n`;
+        weekdays.forEach((d,j)=>{
+          const c=getCode(s.usn,d);r[C_DATE+j]=c;
+          if(c==='x')absent++;else present++;
+        });
+        r[C_ABS]=absent;r[C_PRE]=present;r[C_REM]='';
+        const ri=R(r);
+        merges.push({s:{r:ri,c:0},e:{r:ri,c:C_NAME-1}});
+        merges.push({s:{r:ri,c:C_NAME},e:{r:ri,c:C_DATE-1}});
       });
     };
 
-    const totalRow=(list,label)=>{
-      const totals=weekdays.map(d=>q(list.filter(s=>getCode(s.usn,d)!=='x').length)).join(',');
-      csv+=`${q('')},${q(label)},${totals},${q('')},${q('')},${q('')}\n`;
+    // Total row builder
+    const addTotal=(list,label)=>{
+      const r=Array(TOTAL_COLS).fill('');
+      r[C_NAME]=label;
+      weekdays.forEach((d,j)=>r[C_DATE+j]=list.filter(s=>getCode(s.usn,d)!=='x').length);
+      const ri=R(r);
+      merges.push({s:{r:ri,c:0},e:{r:ri,c:C_NAME-1}});
+      merges.push({s:{r:ri,c:C_NAME},e:{r:ri,c:C_DATE-1}});
     };
 
-    writeRows(males,1);
-    totalRow(males,'<== MALE | TOTAL Per Day ==>');
-    writeRows(females,1);
-    totalRow(females,'<== FEMALE | TOTAL Per Day ==>');
-    totalRow(studentList,'Combined TOTAL Per Day');
+    addStudents(males,1);
+    addTotal(males,'<=== MALE | TOTAL Per Day ===>');
+    addStudents(females,1);
+    addTotal(females,'<=== FEMALE | TOTAL Per Day ===>');
+    addTotal(studentList,'Combined TOTAL Per Day');
 
-    const filename=`SF2_${activeSection.replace(/\s+/g,'_')}_${monthName}_${year}.csv`;
-    downloadCSV(csv,filename);
+    // Build workbook
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!merges']=merges;
+    // Column widths: No.(4), Name(36), dates(4 each), ABSENT(8), PRESENT(8), REMARKS(30)
+    ws['!cols']=[{wch:4},{wch:36},...weekdays.map(()=>({wch:4})),{wch:8},{wch:8},{wch:30}];
+    // Row heights: header rows taller
+    ws['!rows']=rows.map((_,i)=>i===10?{hpt:36}:i===11||i===12?{hpt:20}:{hpt:16});
+
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'SF2');
+    const filename=`SF2_${activeSection.replace(/\s+/g,'_')}_${monthName}_${year}.xlsx`;
+    XLSX.writeFile(wb,filename);
   }catch(e){alert('Export failed: '+e.message);}
   finally{if(btn){btn.textContent='⬇ Export Attendance';btn.disabled=false;}}
 }
