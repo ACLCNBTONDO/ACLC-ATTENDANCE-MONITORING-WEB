@@ -1101,13 +1101,28 @@ function materialsHTML(){
     </div>`;
 }
 
+function getLocalMaterials(){
+  try{ return JSON.parse(localStorage.getItem('aclc_materials')||'[]'); } catch(e){ return []; }
+}
+function saveLocalMaterials(list){
+  try{ localStorage.setItem('aclc_materials', JSON.stringify(list)); } catch(e){}
+}
+
 async function loadMaterials(){
   activeMaterialSubject = 'All';
+  const local = getLocalMaterials();
   try {
     const d = await api('courses.php');
-    allMaterials = d.materials || SAMPLE_MATERIALS;
+    const remote = d.materials || [];
+    // merge: remote first, then any local-only items not in remote
+    const remoteIds = new Set(remote.map(m=>String(m.id)));
+    const localOnly = local.filter(m=>!remoteIds.has(String(m.id)));
+    allMaterials = [...localOnly, ...remote];
   } catch(e) {
-    allMaterials = SAMPLE_MATERIALS;
+    // API unavailable — use local uploads + sample materials
+    const localIds = new Set(local.map(m=>String(m.id)));
+    const samples = SAMPLE_MATERIALS.filter(m=>!localIds.has(String(m.id)));
+    allMaterials = [...local, ...samples];
   }
   renderMaterials(allMaterials);
 }
@@ -1185,39 +1200,47 @@ function closeUploadModal(){
 }
 
 async function submitUploadMaterial(){
-  const title   = document.getElementById('um-title').value.trim();
-  const subject  = document.getElementById('um-subject').value;
-  const desc    = document.getElementById('um-desc').value.trim();
-  const section = document.getElementById('um-section').value;
-  const url       = document.getElementById('um-url').value.trim();
-  const classtime = document.getElementById('um-classtime').value.trim();
-  const ftype   = document.getElementById('um-type').value;
-  const errEl   = document.getElementById('um-error');
-  const btn     = document.getElementById('um-btn');
-  errEl.style.display='none';
-  if(!title){ errEl.textContent='Title is required.'; errEl.style.display='block'; return; }
-  btn.textContent='Uploading…'; btn.disabled=true;
-  const payload={ title, subject, description:desc, section, file_url:url, file_type:ftype, class_time:classtime };
-  try{
-    let saved = false;
-    try{ await api('courses.php','POST',payload); saved=true; } catch(e){}
-    // Also push to local list for immediate display
-    const newMat = { id:Date.now(), title, subject, description:desc, section, file_url:url, file_type:ftype, class_time:classtime, uploader:currentUser.name, created_at:new Date().toISOString().split('T')[0] };
-    if(!saved) allMaterials.unshift(newMat);
-    else await loadMaterials().then(()=>{}).catch(()=>{allMaterials.unshift(newMat);});
-    filterMaterials();
-    closeUploadModal();
-  }catch(e){
-    errEl.textContent='Error: '+e.message; errEl.style.display='block';
-  } finally {
-    btn.textContent='Upload Material'; btn.disabled=false;
+  const title     = (document.getElementById('um-title')?.value||'').trim();
+  const subject   = document.getElementById('um-subject')?.value||'Other';
+  const desc      = (document.getElementById('um-desc')?.value||'').trim();
+  const section   = document.getElementById('um-section')?.value||'';
+  const url       = (document.getElementById('um-url')?.value||'').trim();
+  const classtime = (document.getElementById('um-classtime')?.value||'').trim();
+  const ftype     = document.getElementById('um-type')?.value||'other';
+  const errEl     = document.getElementById('um-error');
+  const btn       = document.getElementById('um-btn');
+  if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
+  if(!title){
+    if(errEl){ errEl.textContent='Title is required.'; errEl.style.display='block'; }
+    return;
   }
+  if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
+  const uploaderName = (currentUser&&currentUser.name) ? currentUser.name : 'Student';
+  const newMat = {
+    id: Date.now(),
+    title, subject, description:desc, section,
+    file_url: url, file_type: ftype, class_time: classtime,
+    uploader: uploaderName,
+    created_at: new Date().toISOString().split('T')[0]
+  };
+  // Always save locally first so it survives API errors / CORS issues
+  const local = getLocalMaterials();
+  local.unshift(newMat);
+  saveLocalMaterials(local);
+  allMaterials.unshift(newMat);
+  // Also try the API (fail silently)
+  try{ await api('courses.php','POST',{title,subject,description:desc,section,file_url:url,file_type:ftype,class_time:classtime}); }catch(e){}
+  filterMaterials();
+  closeUploadModal();
+  if(btn){ btn.textContent='Upload Material'; btn.disabled=false; }
 }
 
 async function deleteMaterial(id){
   if(!confirm('Delete this material?')) return;
   try{ await api(`courses.php?id=${id}`,'DELETE'); } catch(e){}
   allMaterials = allMaterials.filter(m=>m.id!==id);
+  const local = getLocalMaterials().filter(m=>m.id!==id);
+  saveLocalMaterials(local);
   filterMaterials();
 }
 
