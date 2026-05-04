@@ -585,7 +585,7 @@ function attendanceTableHTML(readOnly=false) {
         ${!readOnly?`<div style="display:flex;gap:8px">
           <button class="btn btn-ghost" onclick="markAllPresent()">✓ All Present</button>
           <button class="btn btn-primary" onclick="saveAttendance()">💾 Save</button>
-        </div>`:`<button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>`}
+        </div>`:`<button class="btn btn-ghost" onclick="exportAttendance()">⬇ Export Attendance</button>`}
       </div>
       ${!isTeacher?`<div style="padding:12px 20px;border-bottom:1px solid var(--border)">
         ${Object.entries(grouped).map(([grp,secs])=>`
@@ -1028,9 +1028,92 @@ async function exportReport(){
   catch(e){alert('Export failed: '+e.message);}
 }
 
-async function exportCSV(){
-  try{const d=await api(`students.php?section=${encodeURIComponent(activeSection)}&date=${activeDate}`);let csv='USN,Name,Section,Scanned At,Status,Remarks\n';(d.students||[]).forEach(s=>{const r=(s.remarks||'').toLowerCase();const st=!s.remarks&&!s.scanned_at?'Absent':r.includes('tardy')||r.includes('late')?'Late':'Present';csv+=`"${s.usn}","${s.full_name}","${s.section}","${s.scanned_at||''}","${st}","${s.remarks||''}"\n`;});downloadCSV(csv,`ACLC_Attendance_${activeSection.replace(/\s/g,'_')}_${activeDate}.csv`);}
-  catch(e){alert('Export failed: '+e.message);}
+async function exportAttendance(){
+  if(!activeSection){alert('Please select a section first.');return;}
+  const btn=document.querySelector('button[onclick="exportAttendance()"]');
+  if(btn){btn.textContent='⏳ Preparing…';btn.disabled=true;}
+  try{
+    const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const ref=new Date(activeDate+'T00:00:00');
+    const year=ref.getFullYear();
+    const month=ref.getMonth();
+    const monthName=MONTHS[month];
+    const daysInMonth=new Date(year,month+1,0).getDate();
+
+    // Collect all weekday dates in the month
+    const weekdays=[];
+    for(let d=1;d<=daysInMonth;d++){
+      const dt=new Date(year,month,d);
+      const dow=dt.getDay();
+      if(dow!==0&&dow!==6) weekdays.push(`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    }
+
+    // Fetch attendance for each weekday (students filtered to activeSection by API)
+    const attendanceMap={}; // {usn:{date:remarks}}
+    let studentList=[];
+    for(const date of weekdays){
+      const data=await api(`students.php?section=${encodeURIComponent(activeSection)}&date=${date}`);
+      if(studentList.length===0) studentList=data.students||[];
+      (data.students||[]).forEach(s=>{
+        if(!attendanceMap[s.usn]) attendanceMap[s.usn]={};
+        attendanceMap[s.usn][date]=s.remarks||'';
+      });
+    }
+
+    // Attendance code: blank=Present, x=Absent, /=Late/Tardy
+    const getCode=(usn,date)=>{
+      if(!attendanceMap[usn]) return '';
+      const r=(attendanceMap[usn][date]||'').toLowerCase();
+      if(!r) return 'x';
+      if(r.includes('tardy')||r.includes('late')) return '/';
+      return '';
+    };
+
+    const males=studentList.filter(s=>(s.sex||'').toLowerCase()==='male');
+    const females=studentList.filter(s=>(s.sex||'').toLowerCase()==='female');
+
+    const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+    const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    let csv='';
+    // ── SF2 Header ──────────────────────────────────────────────
+    csv+=`${q('School Form 2 - Daily Attendance Report of Learners')}\n`;
+    csv+=`${q('Section:')},${q(activeSection)},${q('Month of:')},${q(monthName+' '+year)}\n\n`;
+
+    // ── Column headers ───────────────────────────────────────────
+    // Row 1: day numbers
+    const dayNumHeaders=weekdays.map(d=>q(parseInt(d.split('-')[2]))).join(',');
+    csv+=`${q('No.')},${q('NAME (Last Name, First Name, Middle Name)')},${dayNumHeaders},${q('ABSENT')},${q('PRESENT')},${q('REMARKS')}\n`;
+    // Row 2: day-of-week labels
+    const dowHeaders=weekdays.map(d=>q(DAY_NAMES[new Date(d+'T00:00:00').getDay()])).join(',');
+    csv+=`${q('')},${q('')},${dowHeaders},${q('')},${q('')},${q('')}\n`;
+
+    // ── Student rows ──────────────────────────────────────────────
+    const writeRows=(list,startNo)=>{
+      list.forEach((s,i)=>{
+        const name=`${s.last_name}, ${s.first_name}${s.middle_name?' '+s.middle_name:''}`;
+        const codes=weekdays.map(d=>q(getCode(s.usn,d))).join(',');
+        let absent=0,present=0;
+        weekdays.forEach(d=>{const c=getCode(s.usn,d);if(c==='x')absent++;else present++;});
+        csv+=`${q(startNo+i)},${q(name)},${codes},${q(absent)},${q(present)},${q('')}\n`;
+      });
+    };
+
+    const totalRow=(list,label)=>{
+      const totals=weekdays.map(d=>q(list.filter(s=>getCode(s.usn,d)!=='x').length)).join(',');
+      csv+=`${q('')},${q(label)},${totals},${q('')},${q('')},${q('')}\n`;
+    };
+
+    writeRows(males,1);
+    totalRow(males,'<== MALE | TOTAL Per Day ==>');
+    writeRows(females,1);
+    totalRow(females,'<== FEMALE | TOTAL Per Day ==>');
+    totalRow(studentList,'Combined TOTAL Per Day');
+
+    const filename=`SF2_${activeSection.replace(/\s+/g,'_')}_${monthName}_${year}.csv`;
+    downloadCSV(csv,filename);
+  }catch(e){alert('Export failed: '+e.message);}
+  finally{if(btn){btn.textContent='⬇ Export Attendance';btn.disabled=false;}}
 }
 
 async function downloadStudentRecord(){
