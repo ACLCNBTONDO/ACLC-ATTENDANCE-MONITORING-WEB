@@ -347,7 +347,8 @@ tr:hover td{background:var(--bg)}
         <option value="">All Sections</option>
       </select>
     </div>
-    <div class="form-group"><label class="form-label">File URL or Link</label><input class="form-input" id="um-url" placeholder="https://drive.google.com/… or paste any link"/></div>
+    <div class="form-group"><label class="form-label">File URL or Link (optional)</label><input class="form-input" id="um-url" placeholder="https://drive.google.com/… or paste any link"/></div>
+    <div class="form-group"><label class="form-label">Class Time (shown when no link)</label><input class="form-input" id="um-classtime" placeholder="e.g. 7:30 AM – 9:00 AM"/></div>
     <div class="form-group"><label class="form-label">File Type</label>
       <select class="form-select" id="um-type">
         <option value="pdf">PDF Document</option>
@@ -480,7 +481,6 @@ const NAV = {
     { label:'Management', items:[
       { icon:'◎', text:'Students',         page:'students' },
       { icon:'⊡', text:'Classes',          page:'classes' },
-      { icon:'📚', text:'Course Materials', page:'materials' },
       { icon:'👤', text:'Profile',          page:'profile' },
       { icon:'⚙', text:'Settings',         page:'settings' },
     ]}
@@ -491,7 +491,6 @@ const NAV = {
       { icon:'✓', text:'Attendance',       page:'attendance' },
       { icon:'☰', text:'Records',          page:'records' },
       { icon:'◑', text:'Reports',          page:'reports' },
-      { icon:'📚', text:'Course Materials', page:'materials' },
       { icon:'👤', text:'Profile',          page:'profile' },
       { icon:'⚙', text:'Settings',         page:'settings' },
     ]}
@@ -1067,16 +1066,16 @@ async function loadReports(){
 // ══════════════════════════════════════════
 // Sample built-in materials (shown when API is unavailable)
 const SAMPLE_MATERIALS = [
-  { id:1, title:'Introduction to Calculus', subject:'Mathematics', description:'Covers limits, derivatives, and basic integration techniques for Grade 11 STEM students.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Santos', created_at:'2025-05-01' },
-  { id:2, title:'Cell Biology Review Notes', subject:'Science', description:'Comprehensive review of cell structure, organelles, and their functions with diagrams.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Reyes', created_at:'2025-05-02' },
-  { id:3, title:'Essay Writing Guide', subject:'English', description:'Step-by-step guide to writing argumentative and descriptive essays with sample outputs.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Cruz', created_at:'2025-04-28' },
-  { id:4, title:'Philippine History Lecture Slides', subject:'History', description:'Lecture slides covering the Spanish Colonial Period and the Philippine Revolution.', section:'', file_url:'#', file_type:'ppt', uploader:'Teacher Bautista', created_at:'2025-04-30' },
-  { id:5, title:'Computer Programming Basics', subject:'ICT', description:'Introduction to programming concepts, variables, loops, and conditionals using Python.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Villanueva', created_at:'2025-05-03' },
-  { id:6, title:'Physical Fitness Test Guide', subject:'P.E.', description:'Guidelines and scoring rubrics for the annual physical fitness test.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Mendoza', created_at:'2025-04-25' },
+  { id:1, title:'Introduction to Calculus', subject:'Mathematics', description:'Covers limits, derivatives, and basic integration techniques for Grade 11 STEM students.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Santos', created_at:'2025-05-01', class_time:'7:30 AM – 9:00 AM' },
+  { id:2, title:'Cell Biology Review Notes', subject:'Science', description:'Comprehensive review of cell structure, organelles, and their functions with diagrams.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Reyes', created_at:'2025-05-02', class_time:'9:00 AM – 10:30 AM' },
+  { id:3, title:'Essay Writing Guide', subject:'English', description:'Step-by-step guide to writing argumentative and descriptive essays with sample outputs.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Cruz', created_at:'2025-04-28', class_time:'10:30 AM – 12:00 PM' },
+  { id:4, title:'Philippine History Lecture Slides', subject:'History', description:'Lecture slides covering the Spanish Colonial Period and the Philippine Revolution.', section:'', file_url:'#', file_type:'ppt', uploader:'Teacher Bautista', created_at:'2025-04-30', class_time:'1:00 PM – 2:30 PM' },
+  { id:5, title:'Computer Programming Basics', subject:'ICT', description:'Introduction to programming concepts, variables, loops, and conditionals using Python.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Villanueva', created_at:'2025-05-03', class_time:'2:30 PM – 4:00 PM' },
+  { id:6, title:'Physical Fitness Test Guide', subject:'P.E.', description:'Guidelines and scoring rubrics for the annual physical fitness test.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Mendoza', created_at:'2025-04-25', class_time:'4:00 PM – 5:30 PM' },
 ];
 
 function materialsHTML(){
-  const canUpload = currentUser.role==='admin' || currentUser.role==='teacher';
+  const canUpload = true;
   const subjects = ['All','Mathematics','Science','English','Filipino','History','ICT','P.E.','Values Education','Other'];
   return `
     <div class="topbar">
@@ -1133,7 +1132,7 @@ const FILE_LABELS = { pdf:'PDF', doc:'Word', ppt:'Slides', img:'Image', vid:'Vid
 
 function renderMaterials(list){
   const c = document.getElementById('materials-container'); if(!c) return;
-  const canUpload = currentUser.role==='admin' || currentUser.role==='teacher';
+  const canUpload = true;
   if(!list.length){
     c.innerHTML=`<div class="empty">
       <div style="font-size:40px;margin-bottom:12px">📭</div>
@@ -1166,7 +1165,7 @@ function renderMaterials(list){
           ${canUpload?`<button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="deleteMaterial(${m.id})">🗑</button>`:''}
           ${hasLink
             ? `<a href="${m.file_url}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:6px 12px;font-size:11px;text-decoration:none">⬇ Open</a>`
-            : `<button class="btn btn-ghost" style="padding:6px 12px;font-size:11px" disabled title="No link provided">📎 No Link</button>`}
+            : `<span style="font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-light);padding:6px 10px;border-radius:6px;white-space:nowrap">🕐 ${m.class_time||'TBA'}</span>`}
         </div>
       </div>
     </div>`;
@@ -1182,6 +1181,7 @@ function closeUploadModal(){
   document.getElementById('um-title').value='';
   document.getElementById('um-desc').value='';
   document.getElementById('um-url').value='';
+  document.getElementById('um-classtime').value='';
 }
 
 async function submitUploadMaterial(){
@@ -1189,19 +1189,20 @@ async function submitUploadMaterial(){
   const subject  = document.getElementById('um-subject').value;
   const desc    = document.getElementById('um-desc').value.trim();
   const section = document.getElementById('um-section').value;
-  const url     = document.getElementById('um-url').value.trim();
+  const url       = document.getElementById('um-url').value.trim();
+  const classtime = document.getElementById('um-classtime').value.trim();
   const ftype   = document.getElementById('um-type').value;
   const errEl   = document.getElementById('um-error');
   const btn     = document.getElementById('um-btn');
   errEl.style.display='none';
   if(!title){ errEl.textContent='Title is required.'; errEl.style.display='block'; return; }
   btn.textContent='Uploading…'; btn.disabled=true;
-  const payload={ title, subject, description:desc, section, file_url:url, file_type:ftype };
+  const payload={ title, subject, description:desc, section, file_url:url, file_type:ftype, class_time:classtime };
   try{
     let saved = false;
     try{ await api('courses.php','POST',payload); saved=true; } catch(e){}
     // Also push to local list for immediate display
-    const newMat = { id:Date.now(), title, subject, description:desc, section, file_url:url, file_type:ftype, uploader:currentUser.name, created_at:new Date().toISOString().split('T')[0] };
+    const newMat = { id:Date.now(), title, subject, description:desc, section, file_url:url, file_type:ftype, class_time:classtime, uploader:currentUser.name, created_at:new Date().toISOString().split('T')[0] };
     if(!saved) allMaterials.unshift(newMat);
     else await loadMaterials().then(()=>{}).catch(()=>{allMaterials.unshift(newMat);});
     filterMaterials();
