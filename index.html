@@ -649,7 +649,7 @@ function attendanceTableHTML(readOnly=false) {
         ${!readOnly?`<div style="display:flex;gap:8px">
           <button class="btn btn-ghost" onclick="markAllPresent()">✓ All Present</button>
           <button class="btn btn-primary" onclick="saveAttendance()">💾 Save</button>
-        </div>`:`<button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>`}
+        </div>`:`<button class="btn btn-ghost" onclick="exportAttendance()">⬇ Export Attendance</button>`}
       </div>
       ${!isTeacher?`<div style="padding:12px 20px;border-bottom:1px solid var(--border)">
         ${Object.entries(grouped).map(([grp,secs])=>`
