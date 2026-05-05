@@ -431,18 +431,20 @@ async function api(endpoint, method='GET', body=null) {
     mode: 'cors'
   };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(`${API}/${endpoint}`, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  const res = await fetch(`${API}/${endpoint}`, opts);
+  let data = {};
+  try { const txt = await res.text(); if (txt.trim()) data = JSON.parse(txt); } catch(e) {}
+  if (!res.ok) throw new Error(data.error || data.message || `Server error (${res.status})`);
   return data;
 }
 
 async function publicApi(endpoint, method='GET', body=null) {
   const opts = { method, headers:{'Content-Type':'application/json'}, mode:'cors' };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(`${API}/${endpoint}`, opts);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  const res = await fetch(`${API}/${endpoint}`, opts);
+  let data = {};
+  try { const txt = await res.text(); if (txt.trim()) data = JSON.parse(txt); } catch(e) {}
+  if (!res.ok) throw new Error(data.error || data.message || `Server error (${res.status})`);
   return data;
 }
 
