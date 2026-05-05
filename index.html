@@ -216,15 +216,10 @@ tr:hover td{background:var(--bg)}
 .subject-tab{padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;color:var(--muted);background:var(--white)}
 .subject-tab:hover{border-color:var(--blue);color:var(--blue)}
 .subject-tab.active{background:var(--blue);color:var(--white);border-color:var(--blue)}
-.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:border .2s,background .2s;background:var(--bg)}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--blue-mid);background:var(--blue-light)}
-.upload-zone-icon{font-size:32px;margin-bottom:8px}
-.upload-zone-text{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
-.upload-zone-sub{font-size:11px;color:var(--muted)}
 .upload-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
 .upload-modal-overlay.open{display:flex}
 
-/* ── ADD STUDENT MODAL ── */
+/* ── MODALS ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--white);border-radius:20px;padding:28px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:fadeUp .3s ease both;max-height:90vh;overflow-y:auto}
@@ -247,10 +242,9 @@ tr:hover td{background:var(--bg)}
 .ann-body{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
 .ann-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .ann-meta{font-size:11px;color:var(--muted)}
-.ann-delete{background:none;border:none;cursor:pointer;font-size:16px;opacity:.4;transition:opacity .15s;padding:2px 6px;border-radius:4px}
+.ann-delete{background:none;border:none;cursor:pointer;font-size:16px;opacity:.4;transition:opacity .15px;padding:2px 6px;border-radius:4px}
 .ann-delete:hover{opacity:1;background:#fff0f0}
 .ann-empty{text-align:center;padding:60px 24px;color:var(--muted)}
-.ann-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 
 /* ── MISC ── */
 .empty{text-align:center;padding:48px;color:var(--muted);font-size:13px}
@@ -382,9 +376,7 @@ tr:hover td{background:var(--bg)}
     </div>
     <div class="form-group"><label class="form-label">Description</label><textarea class="form-input" id="um-desc" rows="3" placeholder="Brief description of this material…" style="resize:vertical"></textarea></div>
     <div class="form-group"><label class="form-label">Section (leave blank for all)</label>
-      <select class="form-select" id="um-section">
-        <option value="">All Sections</option>
-      </select>
+      <select class="form-select" id="um-section"><option value="">All Sections</option></select>
     </div>
     <div class="form-group"><label class="form-label">File URL or Link (optional)</label><input class="form-input" id="um-url" placeholder="https://drive.google.com/… or paste any link"/></div>
     <div class="form-group"><label class="form-label">Class Time (shown when no link)</label><input class="form-input" id="um-classtime" placeholder="e.g. 7:30 AM – 9:00 AM"/></div>
@@ -505,46 +497,46 @@ async function showApp(token) {
   umSel.innerHTML = '<option value="">All Sections</option>' + SECTIONS.map(s=>`<option>${s.name}</option>`).join('');
   activeSection = currentUser.role==='teacher' ? currentUser.section : (SECTIONS[0]?.name||'');
   renderNav();
-  navigateTo(currentUser.role==='student' ? 'dashboard' : 'dashboard');
+  navigateTo('dashboard');
 }
 
 // ══════════════════════════════════════════
-//  NAV
+//  NAV  — includes Announcements for all roles
 // ══════════════════════════════════════════
 const NAV = {
   admin: [
     { label:'Main', items:[
-      { icon:'⊞', text:'Dashboard',        page:'dashboard' },
-      { icon:'✓', text:'Attendance',       page:'attendance' },
-      { icon:'☰', text:'Records',          page:'records' },
-      { icon:'◑', text:'Reports',          page:'reports' },
-      { icon:'📢', text:'Announcements',   page:'announcements' },
+      { icon:'⊞', text:'Dashboard',         page:'dashboard' },
+      { icon:'✓', text:'Attendance',        page:'attendance' },
+      { icon:'☰', text:'Records',           page:'records' },
+      { icon:'◑', text:'Reports',           page:'reports' },
+      { icon:'📢', text:'Announcements',    page:'announcements' },
     ]},
     { label:'Management', items:[
-      { icon:'◎', text:'Students',         page:'students' },
-      { icon:'⊡', text:'Classes',          page:'classes' },
-      { icon:'👤', text:'Profile',          page:'profile' },
-      { icon:'⚙', text:'Settings',         page:'settings' },
+      { icon:'◎', text:'Students',          page:'students' },
+      { icon:'⊡', text:'Classes',           page:'classes' },
+      { icon:'👤', text:'Profile',           page:'profile' },
+      { icon:'⚙', text:'Settings',          page:'settings' },
     ]}
   ],
   teacher: [
     { label:'My Section', items:[
-      { icon:'⊞', text:'Dashboard',        page:'dashboard' },
-      { icon:'✓', text:'Attendance',       page:'attendance' },
-      { icon:'☰', text:'Records',          page:'records' },
-      { icon:'◑', text:'Reports',          page:'reports' },
-      { icon:'📢', text:'Announcements',   page:'announcements' },
-      { icon:'👤', text:'Profile',          page:'profile' },
-      { icon:'⚙', text:'Settings',         page:'settings' },
+      { icon:'⊞', text:'Dashboard',         page:'dashboard' },
+      { icon:'✓', text:'Attendance',        page:'attendance' },
+      { icon:'☰', text:'Records',           page:'records' },
+      { icon:'◑', text:'Reports',           page:'reports' },
+      { icon:'📢', text:'Announcements',    page:'announcements' },
+      { icon:'👤', text:'Profile',           page:'profile' },
+      { icon:'⚙', text:'Settings',          page:'settings' },
     ]}
   ],
   student: [
     { label:'My Account', items:[
-      { icon:'⊞', text:'My Attendance',    page:'dashboard' },
-      { icon:'☰', text:'My Record',        page:'records' },
-      { icon:'📢', text:'Announcements',   page:'announcements' },
+      { icon:'⊞', text:'My Attendance',     page:'dashboard' },
+      { icon:'☰', text:'My Record',         page:'records' },
+      { icon:'📢', text:'Announcements',    page:'announcements' },
       { icon:'📚', text:'Course Materials', page:'materials' },
-      { icon:'👤', text:'My Profile',       page:'profile' },
+      { icon:'👤', text:'My Profile',        page:'profile' },
     ]}
   ]
 };
@@ -576,22 +568,22 @@ function renderPage() {
   if (role === 'student') {
     switch(activePage) {
       case 'announcements': main.innerHTML = announcementsHTML(); loadAnnouncements(); return;
-      case 'materials': main.innerHTML = materialsHTML(); loadMaterials(); return;
-      case 'profile':   main.innerHTML = profileHTML();   return;
+      case 'materials':     main.innerHTML = materialsHTML();     loadMaterials();     return;
+      case 'profile':       main.innerHTML = profileHTML();                            return;
       default: renderStudentPage(main); return;
     }
   }
   switch(activePage) {
-    case 'dashboard':     main.innerHTML = dashboardHTML(); initDashboard(); break;
-    case 'attendance':    main.innerHTML = attendanceHTML(false); initAttendance(); break;
-    case 'records':       main.innerHTML = attendanceHTML(true);  initAttendance(); break;
-    case 'reports':       main.innerHTML = reportsHTML(); loadReports(); break;
-    case 'students':      main.innerHTML = studentsHTML(); loadStudentsPage(); break;
-    case 'classes':       main.innerHTML = classesHTML(); loadClassesPage(); break;
-    case 'materials':     main.innerHTML = materialsHTML(); loadMaterials(); break;
-    case 'announcements': main.innerHTML = announcementsHTML(); loadAnnouncements(); break;
-    case 'profile':       main.innerHTML = profileHTML(); break;
-    case 'settings':      main.innerHTML = settingsHTML(); break;
+    case 'dashboard':     main.innerHTML = dashboardHTML();       initDashboard();      break;
+    case 'attendance':    main.innerHTML = attendanceHTML(false); initAttendance();     break;
+    case 'records':       main.innerHTML = attendanceHTML(true);  initAttendance();     break;
+    case 'reports':       main.innerHTML = reportsHTML();         loadReports();        break;
+    case 'announcements': main.innerHTML = announcementsHTML();   loadAnnouncements();  break;
+    case 'students':      main.innerHTML = studentsHTML();        loadStudentsPage();   break;
+    case 'classes':       main.innerHTML = classesHTML();         loadClassesPage();    break;
+    case 'materials':     main.innerHTML = materialsHTML();       loadMaterials();      break;
+    case 'profile':       main.innerHTML = profileHTML();         loadProfileStats();   break;
+    case 'settings':      main.innerHTML = settingsHTML();                              break;
     default: main.innerHTML = `<div class="empty">Page not found.</div>`;
   }
 }
@@ -695,7 +687,10 @@ function attendanceTableHTML(readOnly=false) {
         ${!readOnly?`<div style="display:flex;gap:8px">
           <button class="btn btn-ghost" onclick="markAllPresent()">✓ All Present</button>
           <button class="btn btn-primary" onclick="saveAttendance()">💾 Save</button>
-        </div>`:`<button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>`}
+        </div>`:`<div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn btn-ghost" onclick="exportAttendance()">⬇ Export SF2</button>
+        </div>`}
       </div>
       ${!isTeacher?`<div style="padding:12px 20px;border-bottom:1px solid var(--border)">
         ${Object.entries(grouped).map(([grp,secs])=>`
@@ -877,6 +872,7 @@ async function saveAttendance(){
   }catch(e){alert('Error saving: '+e.message);}
 }
 
+// ── CSV export (quick, plain) ─────────────────────────────────────────────────
 async function exportCSV(){
   try{
     const d=await api(`students.php?section=${encodeURIComponent(activeSection)}&date=${activeDate}`);
@@ -886,22 +882,49 @@ async function exportCSV(){
       const st=r.includes('tardy')||r.includes('late')?'Late':s.remarks?'Present':'Absent';
       rows.push([i+1,s.full_name||`${s.last_name} ${s.first_name}`,s.usn,s.section||'',st,s.scanned_at||'',s.remarks||'']);
     });
-    const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-    const blob=new Blob([csv],{type:'text/csv'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`attendance_${activeSection}_${activeDate}.csv`;a.click();
+    downloadCSV(rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n'), `attendance_${activeSection}_${activeDate}.csv`);
   }catch(e){alert('Export failed: '+e.message);}
 }
 
+// ── SF2 XLSX export via API ───────────────────────────────────────────────────
+async function exportAttendance() {
+  if (!activeSection) { alert('Please select a section first.'); return; }
+  const btn = document.querySelector('button[onclick="exportAttendance()"]');
+  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  try {
+    const url = `${API}/export.php?token=${encodeURIComponent(authToken)}&section=${encodeURIComponent(activeSection)}&date=${encodeURIComponent(activeDate)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({error:'Export failed'}));
+      throw new Error(err.error || 'Export failed');
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ref = new Date(activeDate + 'T00:00:00');
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    a.download = `SF2_${activeSection.replace(/\s+/g,'_')}_${MONTHS[ref.getMonth()]}_${ref.getFullYear()}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch(e) { alert('Export failed: ' + e.message); }
+  finally { if (btn) { btn.textContent = '⬇ Export SF2'; btn.disabled = false; } }
+}
+
+// ── Full dashboard report export ──────────────────────────────────────────────
 async function exportReport(){
   try{
     const [dash,stuData]=await Promise.all([api(`dashboard.php?date=${new Date().toISOString().split('T')[0]}`),api('students.php?all=1')]);
     const s=dash.stats;
     const rows=[['Report','Value'],['Total Students',s.total],['Present',s.present],['Absent',s.absent],['Late',s.late],['',''],['Student','Section','USN']];
     (stuData.students||[]).forEach(st=>rows.push([st.full_name||`${st.last_name} ${st.first_name}`,st.section||'',st.usn]));
-    const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-    const blob=new Blob([csv],{type:'text/csv'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`report_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+    downloadCSV(rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n'), `report_${new Date().toISOString().split('T')[0]}.csv`);
   }catch(e){alert('Export failed: '+e.message);}
+}
+
+// ── Shared CSV downloader ─────────────────────────────────────────────────────
+function downloadCSV(csv, name) {
+  const b=new Blob([csv],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
 }
 
 // ══════════════════════════════════════════
@@ -927,6 +950,7 @@ async function renderStudentPage(main) {
           <div><div class="page-title">${activePage==='records'?'My Attendance Record':'My Attendance'}</div>
           <div class="page-sub">${currentUser.section_name||''}</div></div>
         </div>
+        <button class="btn btn-ghost" onclick="downloadStudentRecord()">⬇ Download</button>
       </div>
       <div class="content-area">
         <div class="profile-card">
@@ -975,6 +999,18 @@ async function renderStudentPage(main) {
   } catch(err){
     main.innerHTML=`<div class="empty" style="color:var(--red)">${err.message}</div>`;
   }
+}
+
+// ── Student record download ───────────────────────────────────────────────────
+async function downloadStudentRecord() {
+  try {
+    const d = await api(`attendance.php?usn=${encodeURIComponent(currentUser.usn)}&days=365`);
+    let csv = 'Date,Status,Scanned At,Remarks\n';
+    (d.history || []).forEach(r => {
+      csv += `"${r.date}","${r.status}","${r.scanned_at||''}","${r.remarks||''}"\n`;
+    });
+    downloadCSV(csv, `My_Record_${currentUser.usn}.csv`);
+  } catch(e) { alert('Download failed: ' + e.message); }
 }
 
 // ══════════════════════════════════════════
@@ -1069,7 +1105,7 @@ function renderClasses(students){
 }
 
 // ══════════════════════════════════════════
-//  REPORTS PAGE
+//  REPORTS PAGE  (teacher-aware, from Doc 2)
 // ══════════════════════════════════════════
 function reportsHTML(){
   return `
@@ -1090,6 +1126,7 @@ function reportsHTML(){
       </div>
     </div>`;
 }
+
 async function loadReports(){
   const today=new Date().toISOString().split('T')[0];
   const isTeacher=currentUser.role==='teacher';
@@ -1097,7 +1134,7 @@ async function loadReports(){
   const secEl=document.getElementById('rep-sections');
   const todEl=document.getElementById('rep-today');
 
-  // ── Panel 1: Students per Section ─────────────────────────────────────────
+  // Panel 1: Students per Section
   try{
     const stuUrl = isTeacher && section
       ? `students.php?section=${encodeURIComponent(section)}&date=${today}`
@@ -1105,7 +1142,6 @@ async function loadReports(){
     const stuData=await api(stuUrl);
     const students=stuData.students||[];
     if(isTeacher){
-      // Teacher sees their section's student count only
       if(secEl) secEl.innerHTML=section
         ?`<div class="report-row"><span>${section}</span><span class="badge badge-blue">${students.length} students</span></div>`
         :`<div class="report-row" style="color:var(--muted);font-size:13px">No section assigned.</div>`;
@@ -1118,7 +1154,7 @@ async function loadReports(){
     if(secEl) secEl.innerHTML=`<div style="color:var(--muted);font-size:13px">Unable to load section data.</div>`;
   }
 
-  // ── Panel 2: Today's Summary ───────────────────────────────────────────────
+  // Panel 2: Today's Summary
   try{
     const dashUrl = isTeacher && section
       ? `dashboard.php?date=${today}&section=${encodeURIComponent(section)}`
@@ -1136,190 +1172,7 @@ async function loadReports(){
 }
 
 // ══════════════════════════════════════════
-//  COURSE MATERIALS (NEW FEATURE)
-// ══════════════════════════════════════════
-// Sample built-in materials (shown when API is unavailable)
-const SAMPLE_MATERIALS = [
-  { id:1, title:'Introduction to Calculus', subject:'Mathematics', description:'Covers limits, derivatives, and basic integration techniques for Grade 11 STEM students.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Santos', created_at:'2025-05-01', class_time:'7:30 AM – 9:00 AM' },
-  { id:2, title:'Cell Biology Review Notes', subject:'Science', description:'Comprehensive review of cell structure, organelles, and their functions with diagrams.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Reyes', created_at:'2025-05-02', class_time:'9:00 AM – 10:30 AM' },
-  { id:3, title:'Essay Writing Guide', subject:'English', description:'Step-by-step guide to writing argumentative and descriptive essays with sample outputs.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Cruz', created_at:'2025-04-28', class_time:'10:30 AM – 12:00 PM' },
-  { id:4, title:'Philippine History Lecture Slides', subject:'History', description:'Lecture slides covering the Spanish Colonial Period and the Philippine Revolution.', section:'', file_url:'#', file_type:'ppt', uploader:'Teacher Bautista', created_at:'2025-04-30', class_time:'1:00 PM – 2:30 PM' },
-  { id:5, title:'Computer Programming Basics', subject:'ICT', description:'Introduction to programming concepts, variables, loops, and conditionals using Python.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Villanueva', created_at:'2025-05-03', class_time:'2:30 PM – 4:00 PM' },
-  { id:6, title:'Physical Fitness Test Guide', subject:'P.E.', description:'Guidelines and scoring rubrics for the annual physical fitness test.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Mendoza', created_at:'2025-04-25', class_time:'4:00 PM – 5:30 PM' },
-];
-
-function materialsHTML(){
-  const canUpload = true;
-  const subjects = ['All','Mathematics','Science','English','Filipino','History','ICT','P.E.','Values Education','Other'];
-  return `
-    <div class="topbar">
-      <div class="topbar-left"><div class="topbar-bar"></div>
-        <div><div class="page-title">Course Materials</div>
-        <div class="page-sub">Browse and download learning resources</div></div>
-      </div>
-      <div class="topbar-actions">
-        ${canUpload?`<button class="btn btn-primary" onclick="openUploadModal()">📤 Upload Material</button>`:''}
-      </div>
-    </div>
-    <div class="materials-filters">
-      <div class="search-bar" style="max-width:280px">
-        <span style="color:var(--muted)">🔍</span>
-        <input type="text" id="mat-search" placeholder="Search materials…" oninput="filterMaterials()"/>
-      </div>
-      <div class="subject-tabs" id="subject-tabs">
-        ${subjects.map(s=>`<div class="subject-tab ${s==='All'?'active':''}" onclick="setMaterialSubject('${s}',this)">${s}</div>`).join('')}
-      </div>
-    </div>
-    <div id="materials-container">
-      <div class="empty"><span class="spinner"></span></div>
-    </div>`;
-}
-
-function getLocalMaterials(){
-  try{ return JSON.parse(localStorage.getItem('aclc_materials')||'[]'); } catch(e){ return []; }
-}
-function saveLocalMaterials(list){
-  try{ localStorage.setItem('aclc_materials', JSON.stringify(list)); } catch(e){}
-}
-
-async function loadMaterials(){
-  activeMaterialSubject = 'All';
-  const local = getLocalMaterials();
-  try {
-    const d = await api('courses.php');
-    const remote = d.materials || [];
-    // merge: remote first, then any local-only items not in remote
-    const remoteIds = new Set(remote.map(m=>String(m.id)));
-    const localOnly = local.filter(m=>!remoteIds.has(String(m.id)));
-    allMaterials = [...localOnly, ...remote];
-  } catch(e) {
-    // API unavailable — use local uploads + sample materials
-    const localIds = new Set(local.map(m=>String(m.id)));
-    const samples = SAMPLE_MATERIALS.filter(m=>!localIds.has(String(m.id)));
-    allMaterials = [...local, ...samples];
-  }
-  renderMaterials(allMaterials);
-}
-
-function setMaterialSubject(subj, el){
-  activeMaterialSubject = subj;
-  document.querySelectorAll('.subject-tab').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
-  filterMaterials();
-}
-
-function filterMaterials(){
-  const q = (document.getElementById('mat-search')?.value||'').toLowerCase();
-  let list = allMaterials;
-  if(activeMaterialSubject!=='All') list=list.filter(m=>m.subject===activeMaterialSubject);
-  if(q) list=list.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q));
-  renderMaterials(list);
-}
-
-const FILE_ICONS = { pdf:'📄', doc:'📝', ppt:'📊', img:'🖼️', vid:'🎬', other:'📎' };
-const FILE_LABELS = { pdf:'PDF', doc:'Word', ppt:'Slides', img:'Image', vid:'Video', other:'File' };
-
-function renderMaterials(list){
-  const c = document.getElementById('materials-container'); if(!c) return;
-  const canUpload = true;
-  if(!list.length){
-    c.innerHTML=`<div class="empty">
-      <div style="font-size:40px;margin-bottom:12px">📭</div>
-      <div style="font-weight:600;margin-bottom:6px">No materials found</div>
-      <div style="font-size:12px">${canUpload?'Upload a material to get started.':'No materials have been uploaded yet.'}</div>
-    </div>`;
-    return;
-  }
-  c.innerHTML=`<div class="materials-grid">${list.map((m,i)=>{
-    const ft = m.file_type||'other';
-    const icon = FILE_ICONS[ft]||'📎';
-    const label = FILE_LABELS[ft]||'File';
-    const date = m.created_at ? new Date(m.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
-    const hasLink = m.file_url && m.file_url !== '#';
-    return `<div class="material-card" style="animation-delay:${i*0.05}s">
-      <div class="material-card-top">
-        <div class="material-icon ${ft}">${icon}</div>
-        <div style="flex:1;min-width:0">
-          <div class="material-title">${m.title}</div>
-          <div class="material-desc">${m.description||''}</div>
-          <div style="margin-top:8px"><span class="material-subject-tag">${m.subject||'General'}</span>${m.section?`<span class="material-subject-tag" style="margin-left:4px;background:#f0fdf4;color:var(--green)">${m.section}</span>`:''}</div>
-        </div>
-      </div>
-      <div class="material-card-footer">
-        <div class="material-meta">
-          <strong>${m.uploader||'Unknown'}</strong> · ${date}<br/>
-          <span style="font-size:10px;color:var(--muted)">${label} file</span>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          ${canUpload?`<button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="deleteMaterial(${m.id})">🗑</button>`:''}
-          ${hasLink
-            ? `<a href="${m.file_url}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:6px 12px;font-size:11px;text-decoration:none">⬇ Open</a>`
-            : `<span style="font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-light);padding:6px 10px;border-radius:6px;white-space:nowrap">🕐 ${m.class_time||'TBA'}</span>`}
-        </div>
-      </div>
-    </div>`;
-  }).join('')}</div>`;
-}
-
-function openUploadModal(){
-  document.getElementById('upload-material-modal').classList.add('open');
-}
-function closeUploadModal(){
-  document.getElementById('upload-material-modal').classList.remove('open');
-  document.getElementById('um-error').classList.remove('visible');
-  document.getElementById('um-title').value='';
-  document.getElementById('um-desc').value='';
-  document.getElementById('um-url').value='';
-  document.getElementById('um-classtime').value='';
-}
-
-async function submitUploadMaterial(){
-  const title     = (document.getElementById('um-title')?.value||'').trim();
-  const subject   = document.getElementById('um-subject')?.value||'Other';
-  const desc      = (document.getElementById('um-desc')?.value||'').trim();
-  const section   = document.getElementById('um-section')?.value||'';
-  const url       = (document.getElementById('um-url')?.value||'').trim();
-  const classtime = (document.getElementById('um-classtime')?.value||'').trim();
-  const ftype     = document.getElementById('um-type')?.value||'other';
-  const errEl     = document.getElementById('um-error');
-  const btn       = document.getElementById('um-btn');
-  if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
-  if(!title){
-    if(errEl){ errEl.textContent='Title is required.'; errEl.style.display='block'; }
-    return;
-  }
-  if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
-  const uploaderName = (currentUser&&currentUser.name) ? currentUser.name : 'Student';
-  const newMat = {
-    id: Date.now(),
-    title, subject, description:desc, section,
-    file_url: url, file_type: ftype, class_time: classtime,
-    uploader: uploaderName,
-    created_at: new Date().toISOString().split('T')[0]
-  };
-  // Always save locally first so it survives API errors / CORS issues
-  const local = getLocalMaterials();
-  local.unshift(newMat);
-  saveLocalMaterials(local);
-  allMaterials.unshift(newMat);
-  // Also try the API (fail silently)
-  try{ await api('courses.php','POST',{title,subject,description:desc,section,file_url:url,file_type:ftype,class_time:classtime}); }catch(e){}
-  filterMaterials();
-  closeUploadModal();
-  if(btn){ btn.textContent='Upload Material'; btn.disabled=false; }
-}
-
-async function deleteMaterial(id){
-  if(!confirm('Delete this material?')) return;
-  try{ await api(`courses.php?id=${id}`,'DELETE'); } catch(e){}
-  allMaterials = allMaterials.filter(m=>m.id!==id);
-  const local = getLocalMaterials().filter(m=>m.id!==id);
-  saveLocalMaterials(local);
-  filterMaterials();
-}
-
-// ══════════════════════════════════════════
-//  ANNOUNCEMENTS FEATURE
+//  ANNOUNCEMENTS  (from Doc 1)
 // ══════════════════════════════════════════
 function getLocalAnnouncements(){
   try{ return JSON.parse(localStorage.getItem('aclc_announcements')||'[]'); }catch(e){ return []; }
@@ -1392,7 +1245,6 @@ function submitAnnouncement(){
   const body     = (document.getElementById('ann-body')?.value||'').trim();
   const priority = document.getElementById('ann-priority')?.value||'info';
   const errEl    = document.getElementById('ann-error');
-  const btn      = document.getElementById('ann-btn');
   if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
   if(!title){ if(errEl){ errEl.textContent='Title is required.'; errEl.style.display='block'; } return; }
   if(!body){  if(errEl){ errEl.textContent='Message is required.'; errEl.style.display='block'; } return; }
@@ -1417,11 +1269,182 @@ function deleteAnnouncement(id){
 }
 
 // ══════════════════════════════════════════
-//  PROFILE PAGE (NEW FEATURE)
+//  COURSE MATERIALS
+// ══════════════════════════════════════════
+const SAMPLE_MATERIALS = [
+  { id:1, title:'Introduction to Calculus', subject:'Mathematics', description:'Covers limits, derivatives, and basic integration techniques for Grade 11 STEM students.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Santos', created_at:'2025-05-01', class_time:'7:30 AM – 9:00 AM' },
+  { id:2, title:'Cell Biology Review Notes', subject:'Science', description:'Comprehensive review of cell structure, organelles, and their functions with diagrams.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Reyes', created_at:'2025-05-02', class_time:'9:00 AM – 10:30 AM' },
+  { id:3, title:'Essay Writing Guide', subject:'English', description:'Step-by-step guide to writing argumentative and descriptive essays with sample outputs.', section:'', file_url:'#', file_type:'doc', uploader:'Teacher Cruz', created_at:'2025-04-28', class_time:'10:30 AM – 12:00 PM' },
+  { id:4, title:'Philippine History Lecture Slides', subject:'History', description:'Lecture slides covering the Spanish Colonial Period and the Philippine Revolution.', section:'', file_url:'#', file_type:'ppt', uploader:'Teacher Bautista', created_at:'2025-04-30', class_time:'1:00 PM – 2:30 PM' },
+  { id:5, title:'Computer Programming Basics', subject:'ICT', description:'Introduction to programming concepts, variables, loops, and conditionals using Python.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Villanueva', created_at:'2025-05-03', class_time:'2:30 PM – 4:00 PM' },
+  { id:6, title:'Physical Fitness Test Guide', subject:'P.E.', description:'Guidelines and scoring rubrics for the annual physical fitness test.', section:'', file_url:'#', file_type:'pdf', uploader:'Teacher Mendoza', created_at:'2025-04-25', class_time:'4:00 PM – 5:30 PM' },
+];
+
+function materialsHTML(){
+  const subjects = ['All','Mathematics','Science','English','Filipino','History','ICT','P.E.','Values Education','Other'];
+  return `
+    <div class="topbar">
+      <div class="topbar-left"><div class="topbar-bar"></div>
+        <div><div class="page-title">Course Materials</div>
+        <div class="page-sub">Browse and download learning resources</div></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="openUploadModal()">📤 Upload Material</button>
+      </div>
+    </div>
+    <div class="materials-filters">
+      <div class="search-bar" style="max-width:280px">
+        <span style="color:var(--muted)">🔍</span>
+        <input type="text" id="mat-search" placeholder="Search materials…" oninput="filterMaterials()"/>
+      </div>
+      <div class="subject-tabs" id="subject-tabs">
+        ${subjects.map(s=>`<div class="subject-tab ${s==='All'?'active':''}" onclick="setMaterialSubject('${s}',this)">${s}</div>`).join('')}
+      </div>
+    </div>
+    <div id="materials-container">
+      <div class="empty"><span class="spinner"></span></div>
+    </div>`;
+}
+
+function getLocalMaterials(){
+  try{ return JSON.parse(localStorage.getItem('aclc_materials')||'[]'); } catch(e){ return []; }
+}
+function saveLocalMaterials(list){
+  try{ localStorage.setItem('aclc_materials', JSON.stringify(list)); } catch(e){}
+}
+
+async function loadMaterials(){
+  activeMaterialSubject = 'All';
+  const local = getLocalMaterials();
+  try {
+    const d = await api('courses.php');
+    const remote = d.materials || [];
+    const remoteIds = new Set(remote.map(m=>String(m.id)));
+    const localOnly = local.filter(m=>!remoteIds.has(String(m.id)));
+    allMaterials = [...localOnly, ...remote];
+  } catch(e) {
+    const localIds = new Set(local.map(m=>String(m.id)));
+    const samples = SAMPLE_MATERIALS.filter(m=>!localIds.has(String(m.id)));
+    allMaterials = [...local, ...samples];
+  }
+  renderMaterials(allMaterials);
+}
+
+function setMaterialSubject(subj, el){
+  activeMaterialSubject = subj;
+  document.querySelectorAll('.subject-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  filterMaterials();
+}
+
+function filterMaterials(){
+  const q = (document.getElementById('mat-search')?.value||'').toLowerCase();
+  let list = allMaterials;
+  if(activeMaterialSubject!=='All') list=list.filter(m=>m.subject===activeMaterialSubject);
+  if(q) list=list.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q)||(m.subject||'').toLowerCase().includes(q));
+  renderMaterials(list);
+}
+
+const FILE_ICONS = { pdf:'📄', doc:'📝', ppt:'📊', img:'🖼️', vid:'🎬', other:'📎' };
+const FILE_LABELS = { pdf:'PDF', doc:'Word', ppt:'Slides', img:'Image', vid:'Video', other:'File' };
+
+function renderMaterials(list){
+  const c = document.getElementById('materials-container'); if(!c) return;
+  if(!list.length){
+    c.innerHTML=`<div class="empty">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      <div style="font-weight:600;margin-bottom:6px">No materials found</div>
+      <div style="font-size:12px">Upload a material to get started.</div>
+    </div>`;
+    return;
+  }
+  c.innerHTML=`<div class="materials-grid">${list.map((m,i)=>{
+    const ft=m.file_type||'other';
+    const icon=FILE_ICONS[ft]||'📎';
+    const label=FILE_LABELS[ft]||'File';
+    const date=m.created_at?new Date(m.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
+    const hasLink=m.file_url&&m.file_url!=='#';
+    return `<div class="material-card" style="animation-delay:${i*0.05}s">
+      <div class="material-card-top">
+        <div class="material-icon ${ft}">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="material-title">${m.title}</div>
+          <div class="material-desc">${m.description||''}</div>
+          <div style="margin-top:8px"><span class="material-subject-tag">${m.subject||'General'}</span>${m.section?`<span class="material-subject-tag" style="margin-left:4px;background:#f0fdf4;color:var(--green)">${m.section}</span>`:''}</div>
+        </div>
+      </div>
+      <div class="material-card-footer">
+        <div class="material-meta">
+          <strong>${m.uploader||'Unknown'}</strong> · ${date}<br/>
+          <span style="font-size:10px;color:var(--muted)">${label} file</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px" onclick="deleteMaterial(${m.id})">🗑</button>
+          ${hasLink
+            ?`<a href="${m.file_url}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:6px 12px;font-size:11px;text-decoration:none">⬇ Open</a>`
+            :`<span style="font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-light);padding:6px 10px;border-radius:6px;white-space:nowrap">🕐 ${m.class_time||'TBA'}</span>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function openUploadModal(){
+  document.getElementById('upload-material-modal').classList.add('open');
+}
+function closeUploadModal(){
+  document.getElementById('upload-material-modal').classList.remove('open');
+  document.getElementById('um-error').classList.remove('visible');
+  document.getElementById('um-title').value='';
+  document.getElementById('um-desc').value='';
+  document.getElementById('um-url').value='';
+  document.getElementById('um-classtime').value='';
+}
+
+async function submitUploadMaterial(){
+  const title    =(document.getElementById('um-title')?.value||'').trim();
+  const subject  =document.getElementById('um-subject')?.value||'Other';
+  const desc     =(document.getElementById('um-desc')?.value||'').trim();
+  const section  =document.getElementById('um-section')?.value||'';
+  const url      =(document.getElementById('um-url')?.value||'').trim();
+  const classtime=(document.getElementById('um-classtime')?.value||'').trim();
+  const ftype    =document.getElementById('um-type')?.value||'other';
+  const errEl    =document.getElementById('um-error');
+  const btn      =document.getElementById('um-btn');
+  if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
+  if(!title){ if(errEl){ errEl.textContent='Title is required.'; errEl.style.display='block'; } return; }
+  if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
+  const uploaderName=(currentUser&&currentUser.name)?currentUser.name:'Unknown';
+  const newMat={
+    id:Date.now(), title, subject, description:desc, section,
+    file_url:url, file_type:ftype, class_time:classtime,
+    uploader:uploaderName, created_at:new Date().toISOString().split('T')[0]
+  };
+  const local=getLocalMaterials();
+  local.unshift(newMat);
+  saveLocalMaterials(local);
+  allMaterials.unshift(newMat);
+  try{ await api('courses.php','POST',{title,subject,description:desc,section,file_url:url,file_type:ftype,class_time:classtime}); }catch(e){}
+  filterMaterials();
+  closeUploadModal();
+  if(btn){ btn.textContent='Upload Material'; btn.disabled=false; }
+}
+
+async function deleteMaterial(id){
+  if(!confirm('Delete this material?')) return;
+  try{ await api(`courses.php?id=${id}`,'DELETE'); } catch(e){}
+  allMaterials=allMaterials.filter(m=>m.id!==id);
+  const local=getLocalMaterials().filter(m=>m.id!==id);
+  saveLocalMaterials(local);
+  filterMaterials();
+}
+
+// ══════════════════════════════════════════
+//  PROFILE PAGE
 // ══════════════════════════════════════════
 function profileHTML(){
-  const role = currentUser.role;
-  const ini  = currentUser.initials || (currentUser.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const role=currentUser.role;
+  const ini=currentUser.initials||(currentUser.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   return `
     <div class="topbar">
       <div class="topbar-left"><div class="topbar-bar"></div>
@@ -1455,7 +1478,6 @@ function profileHTML(){
           <button class="btn btn-ghost" onclick="resetProfileForm()">Reset</button>
         </div>
       </div>
-
       <div class="panel" style="padding:24px">
         <div class="panel-title" style="margin-bottom:4px">🔒 Change Password</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:18px">Leave blank to keep your current password</div>
@@ -1465,7 +1487,6 @@ function profileHTML(){
         <div id="pass-msg" style="display:none;font-size:12px;margin-bottom:10px;padding:9px 12px;border-radius:8px"></div>
         <button class="btn btn-primary" onclick="changeProfilePass()">🔑 Change Password</button>
       </div>
-
       ${role==='admin'||role==='teacher'?`
       <div class="panel" style="padding:24px">
         <div class="panel-title" style="margin-bottom:4px">📊 Account Overview</div>
@@ -1487,8 +1508,7 @@ function profileHTML(){
 function updateAvatarPreview(name){
   const parts=(name||'').trim().split(/\s+/);
   const ini=(parts[0]?.[0]||'')+(parts[1]?.[0]||'');
-  const av=document.getElementById('prof-avatar');
-  const dn=document.getElementById('prof-disp-name');
+  const av=document.getElementById('prof-avatar'),dn=document.getElementById('prof-disp-name');
   if(av) av.textContent=ini.toUpperCase()||'??';
   if(dn) dn.textContent=name||currentUser.name;
 }
@@ -1501,16 +1521,14 @@ function resetProfileForm(){
 }
 
 async function saveProfile(){
-  const name    = document.getElementById('prof-name')?.value.trim()||'';
-  const email   = document.getElementById('prof-email')?.value.trim()||'';
-  const contact = document.getElementById('prof-contact')?.value.trim()||'';
-  const msg     = document.getElementById('prof-msg');
+  const name   =document.getElementById('prof-name')?.value.trim()||'';
+  const email  =document.getElementById('prof-email')?.value.trim()||'';
+  const contact=document.getElementById('prof-contact')?.value.trim()||'';
+  const msg    =document.getElementById('prof-msg');
   if(!name){ showMsg(msg,'❌ Name is required.','#fff0f0','var(--red)'); return; }
   try{
-    await api('settings.php','POST',{ action:'update_name', name, email, contact });
-    currentUser.name    = name;
-    currentUser.email   = email;
-    currentUser.contact = contact;
+    await api('settings.php','POST',{action:'update_name',name,email,contact});
+    currentUser.name=name; currentUser.email=email; currentUser.contact=contact;
     const parts=name.trim().split(/\s+/);
     const ini=((parts[0]?.[0]||'')+(parts[1]?.[0]||'')).toUpperCase();
     currentUser.initials=ini;
@@ -1521,19 +1539,17 @@ async function saveProfile(){
 }
 
 async function changeProfilePass(){
-  const old  = document.getElementById('prof-old')?.value||'';
-  const nw   = document.getElementById('prof-new')?.value||'';
-  const conf = document.getElementById('prof-confirm')?.value||'';
-  const msg  = document.getElementById('pass-msg');
+  const old =document.getElementById('prof-old')?.value||'';
+  const nw  =document.getElementById('prof-new')?.value||'';
+  const conf=document.getElementById('prof-confirm')?.value||'';
+  const msg =document.getElementById('pass-msg');
   if(!old||!nw){ showMsg(msg,'❌ Please fill in all password fields.','#fff0f0','var(--red)'); return; }
   if(nw!==conf){ showMsg(msg,'❌ Passwords do not match.','#fff0f0','var(--red)'); return; }
   if(nw.length<6){ showMsg(msg,'❌ Password must be at least 6 characters.','#fff0f0','var(--red)'); return; }
   try{
     await api('settings.php','POST',{action:'change_password',old_password:old,new_password:nw});
     showMsg(msg,'✅ Password changed successfully!','#f0fdf4','var(--green)');
-    document.getElementById('prof-old').value='';
-    document.getElementById('prof-new').value='';
-    document.getElementById('prof-confirm').value='';
+    document.getElementById('prof-old').value=document.getElementById('prof-new').value=document.getElementById('prof-confirm').value='';
   }catch(e){ showMsg(msg,'❌ '+e.message,'#fff0f0','var(--red)'); }
 }
 
@@ -1544,7 +1560,6 @@ function showMsg(el,text,bg,color){
   setTimeout(()=>{el.style.display='none';},4000);
 }
 
-// Load account stats for profile page
 async function loadProfileStats(){
   try{
     const d=await api('dashboard.php?date='+new Date().toISOString().split('T')[0]);
@@ -1554,9 +1569,6 @@ async function loadProfileStats(){
     if(stuEl) stuEl.textContent=d.stats?.total||'—';
   }catch(e){}
 }
-
-// Override renderPage to call loadProfileStats after profile load
-const _origRenderPage = renderPage;
 
 // ══════════════════════════════════════════
 //  SETTINGS PAGE
@@ -1587,6 +1599,7 @@ function settingsHTML(){
       </div>
     </div>`;
 }
+
 async function saveName(){
   const name=document.getElementById('set-name').value.trim();
   const msg=document.getElementById('name-msg');
@@ -1598,6 +1611,7 @@ async function saveName(){
     setTimeout(()=>msg.style.display='none',3000);
   }catch(e){msg.style.display='inline';msg.textContent='❌ '+e.message;msg.style.color='var(--red)';}
 }
+
 async function changePass(){
   const old=document.getElementById('set-old').value,nw=document.getElementById('set-new').value,conf=document.getElementById('set-confirm').value;
   const msg=document.getElementById('pass-msg');
@@ -1632,7 +1646,7 @@ async function submitAddStudent(){
 }
 
 // ══════════════════════════════════════════
-//  INIT — auto-login disabled; always start at login
+//  INIT
 // ══════════════════════════════════════════
 window.addEventListener('load', () => {
   localStorage.removeItem('auth_token');
