@@ -881,6 +881,7 @@ async function renderStudentPage(main) {
           <div><div class="page-title">${activePage==='records'?'My Attendance Record':'My Attendance'}</div>
           <div class="page-sub">${currentUser.section_name||''}</div></div>
         </div>
+        <button class="btn btn-ghost" onclick="downloadStudentRecord()">⬇ Download</button>
       </div>
       <div class="content-area">
         <div class="profile-card">
@@ -1465,6 +1466,49 @@ async function submitAddStudent(){
 window.addEventListener('load', () => {
   localStorage.removeItem('auth_token');
 });
+
+// ══════════════════════════════════════════
+//  EXPORTS
+// ══════════════════════════════════════════
+function downloadCSV(csv, name) {
+  const b = new Blob([csv], {type:'text/csv'}), u = URL.createObjectURL(b), a = document.createElement('a');
+  a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u);
+}
+
+async function exportAttendance() {
+  if (!activeSection) { alert('Please select a section first.'); return; }
+  const btn = document.querySelector('button[onclick="exportAttendance()"]');
+  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  try {
+    const url = `${API}/export.php?token=${encodeURIComponent(authToken)}&section=${encodeURIComponent(activeSection)}&date=${encodeURIComponent(activeDate)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({error:'Export failed'}));
+      throw new Error(err.error || 'Export failed');
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ref = new Date(activeDate + 'T00:00:00');
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    a.download = `SF2_${activeSection.replace(/\s+/g,'_')}_${MONTHS[ref.getMonth()]}_${ref.getFullYear()}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch(e) { alert('Export failed: ' + e.message); }
+  finally { if (btn) { btn.textContent = '⬇ Export Attendance'; btn.disabled = false; } }
+}
+
+async function downloadStudentRecord() {
+  try {
+    const d = await api(`attendance.php?usn=${encodeURIComponent(currentUser.usn)}&days=365`);
+    let csv = 'Date,Status,Scanned At,Remarks\n';
+    (d.history || []).forEach(r => {
+      csv += `"${r.date}","${r.status}","${r.scanned_at || ''}","${r.remarks || ''}"\n`;
+    });
+    downloadCSV(csv, `My_Record_${currentUser.usn}.csv`);
+  } catch(e) { alert('Download failed: ' + e.message); }
+}
+
 </script>
 </body>
 </html>
