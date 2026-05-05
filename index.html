@@ -234,6 +234,24 @@ tr:hover td{background:var(--bg)}
 .form-select{padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;background:var(--white);width:100%}
 .form-select:focus{border-color:var(--blue-mid)}
 
+/* ── ANNOUNCEMENTS ── */
+.ann-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;border-left:5px solid var(--blue);margin-bottom:14px;animation:fadeUp .3s ease both;position:relative}
+.ann-card.urgent{border-left-color:var(--red);background:#fffcfc}
+.ann-card.warning{border-left-color:var(--yellow);background:#fffdf0}
+.ann-card.info{border-left-color:var(--blue)}
+.ann-priority{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:3px 9px;border-radius:20px;margin-bottom:10px}
+.ann-priority.urgent{background:#fff0f0;color:var(--red)}
+.ann-priority.warning{background:#fffbeb;color:var(--yellow)}
+.ann-priority.info{background:var(--blue-light);color:var(--blue)}
+.ann-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.ann-body{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+.ann-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.ann-meta{font-size:11px;color:var(--muted)}
+.ann-delete{background:none;border:none;cursor:pointer;font-size:16px;opacity:.4;transition:opacity .15s;padding:2px 6px;border-radius:4px}
+.ann-delete:hover{opacity:1;background:#fff0f0}
+.ann-empty{text-align:center;padding:60px 24px;color:var(--muted)}
+.ann-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+
 /* ── MISC ── */
 .empty{text-align:center;padding:48px;color:var(--muted);font-size:13px}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
@@ -319,6 +337,27 @@ tr:hover td{background:var(--bg)}
     <div style="display:flex;gap:10px;margin-top:8px">
       <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Cancel</button>
       <button class="btn btn-primary" onclick="submitAddStudent()" id="ns-btn" style="flex:2">Add Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT MODAL -->
+<div class="modal-overlay" id="announcement-modal">
+  <div class="modal">
+    <div class="modal-title">📢 Post Announcement <button class="modal-close" onclick="closeAnnouncementModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="ann-title" placeholder="e.g. No Classes Tomorrow"/></div>
+    <div class="form-group"><label class="form-label">Priority</label>
+      <select class="form-select" id="ann-priority">
+        <option value="info">ℹ️ Info — General announcement</option>
+        <option value="warning">⚠️ Warning — Important notice</option>
+        <option value="urgent">🚨 Urgent — Requires immediate attention</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="ann-body" rows="4" placeholder="Write your announcement here…" style="resize:vertical"></textarea></div>
+    <div class="login-error" id="ann-error"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeAnnouncementModal()" style="flex:1">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAnnouncement()" id="ann-btn" style="flex:2">📢 Post Announcement</button>
     </div>
   </div>
 </div>
@@ -477,6 +516,7 @@ const NAV = {
       { icon:'✓', text:'Attendance',       page:'attendance' },
       { icon:'☰', text:'Records',          page:'records' },
       { icon:'◑', text:'Reports',          page:'reports' },
+      { icon:'📢', text:'Announcements',   page:'announcements' },
     ]},
     { label:'Management', items:[
       { icon:'◎', text:'Students',         page:'students' },
@@ -491,6 +531,7 @@ const NAV = {
       { icon:'✓', text:'Attendance',       page:'attendance' },
       { icon:'☰', text:'Records',          page:'records' },
       { icon:'◑', text:'Reports',          page:'reports' },
+      { icon:'📢', text:'Announcements',   page:'announcements' },
       { icon:'👤', text:'Profile',          page:'profile' },
       { icon:'⚙', text:'Settings',         page:'settings' },
     ]}
@@ -499,6 +540,7 @@ const NAV = {
     { label:'My Account', items:[
       { icon:'⊞', text:'My Attendance',    page:'dashboard' },
       { icon:'☰', text:'My Record',        page:'records' },
+      { icon:'📢', text:'Announcements',   page:'announcements' },
       { icon:'📚', text:'Course Materials', page:'materials' },
       { icon:'👤', text:'My Profile',       page:'profile' },
     ]}
@@ -531,21 +573,23 @@ function renderPage() {
   const role = currentUser.role;
   if (role === 'student') {
     switch(activePage) {
+      case 'announcements': main.innerHTML = announcementsHTML(); loadAnnouncements(); return;
       case 'materials': main.innerHTML = materialsHTML(); loadMaterials(); return;
       case 'profile':   main.innerHTML = profileHTML();   return;
       default: renderStudentPage(main); return;
     }
   }
   switch(activePage) {
-    case 'dashboard':  main.innerHTML = dashboardHTML(); initDashboard(); break;
-    case 'attendance': main.innerHTML = attendanceHTML(false); initAttendance(); break;
-    case 'records':    main.innerHTML = attendanceHTML(true);  initAttendance(); break;
-    case 'reports':    main.innerHTML = reportsHTML(); loadReports(); break;
-    case 'students':   main.innerHTML = studentsHTML(); loadStudentsPage(); break;
-    case 'classes':    main.innerHTML = classesHTML(); loadClassesPage(); break;
-    case 'materials':  main.innerHTML = materialsHTML(); loadMaterials(); break;
-    case 'profile':    main.innerHTML = profileHTML(); break;
-    case 'settings':   main.innerHTML = settingsHTML(); break;
+    case 'dashboard':     main.innerHTML = dashboardHTML(); initDashboard(); break;
+    case 'attendance':    main.innerHTML = attendanceHTML(false); initAttendance(); break;
+    case 'records':       main.innerHTML = attendanceHTML(true);  initAttendance(); break;
+    case 'reports':       main.innerHTML = reportsHTML(); loadReports(); break;
+    case 'students':      main.innerHTML = studentsHTML(); loadStudentsPage(); break;
+    case 'classes':       main.innerHTML = classesHTML(); loadClassesPage(); break;
+    case 'materials':     main.innerHTML = materialsHTML(); loadMaterials(); break;
+    case 'announcements': main.innerHTML = announcementsHTML(); loadAnnouncements(); break;
+    case 'profile':       main.innerHTML = profileHTML(); break;
+    case 'settings':      main.innerHTML = settingsHTML(); break;
     default: main.innerHTML = `<div class="empty">Page not found.</div>`;
   }
 }
@@ -649,7 +693,7 @@ function attendanceTableHTML(readOnly=false) {
         ${!readOnly?`<div style="display:flex;gap:8px">
           <button class="btn btn-ghost" onclick="markAllPresent()">✓ All Present</button>
           <button class="btn btn-primary" onclick="saveAttendance()">💾 Save</button>
-        </div>`:`<button class="btn btn-ghost" onclick="exportAttendance()">⬇ Export Attendance</button>`}
+        </div>`:`<button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>`}
       </div>
       ${!isTeacher?`<div style="padding:12px 20px;border-bottom:1px solid var(--border)">
         ${Object.entries(grouped).map(([grp,secs])=>`
@@ -881,7 +925,6 @@ async function renderStudentPage(main) {
           <div><div class="page-title">${activePage==='records'?'My Attendance Record':'My Attendance'}</div>
           <div class="page-sub">${currentUser.section_name||''}</div></div>
         </div>
-        <button class="btn btn-ghost" onclick="downloadStudentRecord()">⬇ Download</button>
       </div>
       <div class="content-area">
         <div class="profile-card">
@@ -1046,20 +1089,48 @@ function reportsHTML(){
     </div>`;
 }
 async function loadReports(){
+  const today=new Date().toISOString().split('T')[0];
+  const isTeacher=currentUser.role==='teacher';
+  const section=currentUser.section||currentUser.section_name||'';
+  const secEl=document.getElementById('rep-sections');
+  const todEl=document.getElementById('rep-today');
+
+  // ── Panel 1: Students per Section ─────────────────────────────────────────
   try{
-    const [dash,stuData]=await Promise.all([api(`dashboard.php?date=${new Date().toISOString().split('T')[0]}`),api('students.php?all=1')]);
-    const s=dash.stats;
-    const secGroups={};
-    (stuData.students||[]).forEach(st=>{if(!secGroups[st.section])secGroups[st.section]=0;secGroups[st.section]++;});
-    const secEl=document.getElementById('rep-sections');
-    if(secEl) secEl.innerHTML=Object.entries(secGroups).sort().map(([sec,cnt])=>`<div class="report-row"><span>${sec}</span><span class="badge badge-blue">${cnt} students</span></div>`).join('');
-    const todEl=document.getElementById('rep-today');
+    const stuUrl = isTeacher && section
+      ? `students.php?section=${encodeURIComponent(section)}&date=${today}`
+      : 'students.php?all=1';
+    const stuData=await api(stuUrl);
+    const students=stuData.students||[];
+    if(isTeacher){
+      // Teacher sees their section's student count only
+      if(secEl) secEl.innerHTML=section
+        ?`<div class="report-row"><span>${section}</span><span class="badge badge-blue">${students.length} students</span></div>`
+        :`<div class="report-row" style="color:var(--muted);font-size:13px">No section assigned.</div>`;
+    } else {
+      const secGroups={};
+      students.forEach(st=>{if(!secGroups[st.section])secGroups[st.section]=0;secGroups[st.section]++;});
+      if(secEl) secEl.innerHTML=Object.entries(secGroups).sort().map(([sec,cnt])=>`<div class="report-row"><span>${sec}</span><span class="badge badge-blue">${cnt} students</span></div>`).join('')||`<div style="color:var(--muted);font-size:13px">No data.</div>`;
+    }
+  }catch(e){
+    if(secEl) secEl.innerHTML=`<div style="color:var(--muted);font-size:13px">Unable to load section data.</div>`;
+  }
+
+  // ── Panel 2: Today's Summary ───────────────────────────────────────────────
+  try{
+    const dashUrl = isTeacher && section
+      ? `dashboard.php?date=${today}&section=${encodeURIComponent(section)}`
+      : `dashboard.php?date=${today}`;
+    const dash=await api(dashUrl);
+    const s=dash.stats||{total:0,present:0,absent:0,late:0};
     if(todEl) todEl.innerHTML=`
       <div class="report-row"><span>Total Students</span><span class="badge badge-blue">${s.total}</span></div>
       <div class="report-row"><span>Present</span><span class="badge badge-green">${s.present}</span></div>
       <div class="report-row"><span>Absent</span><span class="badge badge-red">${s.absent}</span></div>
       <div class="report-row"><span>Late / Tardy</span><span class="badge badge-yellow">${s.late}</span></div>`;
-  }catch(e){}
+  }catch(e){
+    if(todEl) todEl.innerHTML=`<div style="color:var(--muted);font-size:13px">Unable to load today's summary.</div>`;
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1243,6 +1314,104 @@ async function deleteMaterial(id){
   const local = getLocalMaterials().filter(m=>m.id!==id);
   saveLocalMaterials(local);
   filterMaterials();
+}
+
+// ══════════════════════════════════════════
+//  ANNOUNCEMENTS FEATURE
+// ══════════════════════════════════════════
+function getLocalAnnouncements(){
+  try{ return JSON.parse(localStorage.getItem('aclc_announcements')||'[]'); }catch(e){ return []; }
+}
+function saveLocalAnnouncements(list){
+  try{ localStorage.setItem('aclc_announcements', JSON.stringify(list)); }catch(e){}
+}
+
+function announcementsHTML(){
+  const isAdmin = currentUser.role==='admin';
+  return `
+    <div class="topbar">
+      <div class="topbar-left"><div class="topbar-bar"></div>
+        <div><div class="page-title">Announcements</div>
+        <div class="page-sub">School-wide notices and updates</div></div>
+      </div>
+      <div class="topbar-actions">
+        ${isAdmin?`<button class="btn btn-primary" onclick="openAnnouncementModal()">📢 Post Announcement</button>`:''}
+      </div>
+    </div>
+    <div style="padding:20px 24px" id="ann-list">
+      <div class="empty"><span class="spinner"></span></div>
+    </div>`;
+}
+
+function loadAnnouncements(){
+  const list = getLocalAnnouncements();
+  const c = document.getElementById('ann-list'); if(!c) return;
+  if(!list.length){
+    c.innerHTML=`<div class="ann-empty">
+      <div style="font-size:48px;margin-bottom:12px">📭</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)">No announcements yet</div>
+      <div style="font-size:13px">${currentUser.role==='admin'?'Post the first announcement using the button above.':'Check back later for school announcements.'}</div>
+    </div>`;
+    return;
+  }
+  const isAdmin = currentUser.role==='admin';
+  c.innerHTML = list.map((a,i)=>`
+    <div class="ann-card ${a.priority}" style="animation-delay:${i*0.05}s">
+      <div class="ann-priority ${a.priority}">
+        ${a.priority==='urgent'?'🚨 Urgent':a.priority==='warning'?'⚠️ Important':'ℹ️ Info'}
+      </div>
+      <div class="ann-title">${escHtml(a.title)}</div>
+      <div class="ann-body">${escHtml(a.body)}</div>
+      <div class="ann-footer">
+        <div class="ann-meta">📌 Posted by <strong>${escHtml(a.author)}</strong> · ${formatAnnDate(a.created_at)}</div>
+        ${isAdmin?`<button class="ann-delete" onclick="deleteAnnouncement('${a.id}')" title="Delete">🗑</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatAnnDate(iso){
+  try{ return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; }
+}
+
+function openAnnouncementModal(){
+  document.getElementById('announcement-modal').classList.add('open');
+}
+function closeAnnouncementModal(){
+  document.getElementById('announcement-modal').classList.remove('open');
+  const e=document.getElementById('ann-error'); if(e){e.textContent='';e.style.display='none';}
+  const t=document.getElementById('ann-title'); if(t) t.value='';
+  const b=document.getElementById('ann-body');  if(b) b.value='';
+  const p=document.getElementById('ann-priority'); if(p) p.value='info';
+}
+
+function submitAnnouncement(){
+  const title    = (document.getElementById('ann-title')?.value||'').trim();
+  const body     = (document.getElementById('ann-body')?.value||'').trim();
+  const priority = document.getElementById('ann-priority')?.value||'info';
+  const errEl    = document.getElementById('ann-error');
+  const btn      = document.getElementById('ann-btn');
+  if(errEl){ errEl.textContent=''; errEl.style.display='none'; }
+  if(!title){ if(errEl){ errEl.textContent='Title is required.'; errEl.style.display='block'; } return; }
+  if(!body){  if(errEl){ errEl.textContent='Message is required.'; errEl.style.display='block'; } return; }
+  const newAnn = {
+    id: Date.now().toString(),
+    title, body, priority,
+    author: currentUser.name || 'Admin',
+    created_at: new Date().toISOString()
+  };
+  const list = getLocalAnnouncements();
+  list.unshift(newAnn);
+  saveLocalAnnouncements(list);
+  closeAnnouncementModal();
+  loadAnnouncements();
+}
+
+function deleteAnnouncement(id){
+  if(!confirm('Delete this announcement?')) return;
+  const list = getLocalAnnouncements().filter(a=>a.id!==id);
+  saveLocalAnnouncements(list);
+  loadAnnouncements();
 }
 
 // ══════════════════════════════════════════
@@ -1466,49 +1635,6 @@ async function submitAddStudent(){
 window.addEventListener('load', () => {
   localStorage.removeItem('auth_token');
 });
-
-// ══════════════════════════════════════════
-//  EXPORTS
-// ══════════════════════════════════════════
-function downloadCSV(csv, name) {
-  const b = new Blob([csv], {type:'text/csv'}), u = URL.createObjectURL(b), a = document.createElement('a');
-  a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u);
-}
-
-async function exportAttendance() {
-  if (!activeSection) { alert('Please select a section first.'); return; }
-  const btn = document.querySelector('button[onclick="exportAttendance()"]');
-  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
-  try {
-    const url = `${API}/export.php?token=${encodeURIComponent(authToken)}&section=${encodeURIComponent(activeSection)}&date=${encodeURIComponent(activeDate)}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({error:'Export failed'}));
-      throw new Error(err.error || 'Export failed');
-    }
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const ref = new Date(activeDate + 'T00:00:00');
-    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    a.download = `SF2_${activeSection.replace(/\s+/g,'_')}_${MONTHS[ref.getMonth()]}_${ref.getFullYear()}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  } catch(e) { alert('Export failed: ' + e.message); }
-  finally { if (btn) { btn.textContent = '⬇ Export Attendance'; btn.disabled = false; } }
-}
-
-async function downloadStudentRecord() {
-  try {
-    const d = await api(`attendance.php?usn=${encodeURIComponent(currentUser.usn)}&days=365`);
-    let csv = 'Date,Status,Scanned At,Remarks\n';
-    (d.history || []).forEach(r => {
-      csv += `"${r.date}","${r.status}","${r.scanned_at || ''}","${r.remarks || ''}"\n`;
-    });
-    downloadCSV(csv, `My_Record_${currentUser.usn}.csv`);
-  } catch(e) { alert('Download failed: ' + e.message); }
-}
-
 </script>
 </body>
 </html>
